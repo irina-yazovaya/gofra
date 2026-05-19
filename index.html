@@ -220,6 +220,11 @@
             color: #5B6E8C;
             margin-top: 6px;
         }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
         button {
             background: #DC2626;
             width: 100%;
@@ -228,11 +233,14 @@
             border-radius: 44px;
             font-weight: 700;
             color: white;
-            margin-top: 16px;
             cursor: pointer;
             transition: 0.2s;
         }
         button:hover { background: #B91C1C; }
+        .btn-secondary {
+            background: #334155;
+        }
+        .btn-secondary:hover { background: #1E293B; }
         .result-block {
             background: white;
             border-radius: 24px;
@@ -384,7 +392,10 @@
                     <button type="button" id="addBoxBtn" class="add-box-btn" style="background:#E2E8F0; color:#1E293B;">+ Добавить коробку</button>
                 </div>
 
-                <button id="calcBtn">⟳ РАССЧИТАТЬ МАТЕРИАЛЫ</button>
+                <div class="button-group">
+                    <button id="calcBtn">⟳ РАССЧИТАТЬ</button>
+                    <button id="downloadBtn" class="btn-secondary">📄 СКАЧАТЬ СПЕЦИФИКАЦИЮ</button>
+                </div>
             </div>
 
             <!-- ПРАВАЯ ПАНЕЛЬ: РЕЗУЛЬТАТЫ -->
@@ -427,18 +438,15 @@
 
     let boxesArray = [];
 
-    // --- КЛЮЧЕВАЯ ФУНКЦИЯ: фильтрация труб по категории (ОКЛ: только pnd_antipyr и pvc) ---
+    // --- Функция фильтрации трубы по категории (ОКЛ: только pnd_antipyr и pvc) ---
     function filterTubeOptions() {
         const tubeSelect = document.getElementById('tubeType');
         const isOkl = (trafficType === "okl");
         const options = tubeSelect.options;
         
-        console.log("filterTubeOptions called, isOkl =", isOkl); // для отладки
-        
         for(let i = 0; i < options.length; i++) {
             const val = options[i].value;
             if(isOkl) {
-                // Для ОКЛ доступны только ПНД+антипирены и ПВХ
                 if(val === 'pnd_antipyr' || val === 'pvc') {
                     options[i].style.display = '';
                     options[i].disabled = false;
@@ -452,7 +460,6 @@
             }
         }
         
-        // Если текущее выбранное значение скрыто или недоступно — переключаем на первое доступное
         let currentVal = tubeSelect.value;
         let currentVisible = false;
         for(let i = 0; i < options.length; i++) {
@@ -525,7 +532,6 @@
     function renderMountSelector() {
         const container = document.getElementById('mountSelectorArea');
         const isOkl = (trafficType === "okl");
-        
         const plasticDisabled = isOkl;
         
         container.innerHTML = `
@@ -663,6 +669,9 @@
         performCalculation();
     }
 
+    // --- Глобальные переменные для скачивания (актуальные данные) ---
+    let currentSpecData = {};
+
     // --- Главный расчёт ---
     function performCalculation() {
         const tubeType = document.getElementById('tubeType').value;
@@ -725,6 +734,87 @@
         infoText += `📦 Крепёж: упаковки по ${packSizes[currentDiameter]} шт, округление вверх.<br>`;
         if(!fill.ok) infoText += `⚠️ Рекомендуется увеличить диаметр трубы.<br>`;
         document.getElementById('ruleInfo').innerHTML = infoText;
+        
+        // Сохраняем данные для скачивания
+        currentSpecData = {
+            traffic: trafficType === 'okl' ? 'ОКЛ (кабельная линия)' : 'Не ОКЛ (общего назначения)',
+            tubeType: document.querySelector('#tubeType option:checked')?.textContent || tubeType,
+            diameter: currentDiameter,
+            cableSection: cableSection,
+            straightLength: straight,
+            bends: bends,
+            rows: rows,
+            totalPipe: pipeMeters.toFixed(1),
+            coils: coil.text,
+            mountPieces: mountPieces,
+            mountPack: packInfo.text,
+            mountType: mountTypeStr,
+            bendReserve: (bends * 0.5 * rows).toFixed(1),
+            fillPercent: fill.percent,
+            fillOk: fill.ok,
+            boxes: boxesArray.map(b => {
+                let mat = b.material === 'steel' ? 'Сталь' : (b.material === 'plastic_ap' ? 'Пластик с антипиренами' : 'ПП с мембраной');
+                return `${mat}, ${b.terminals} клемм`;
+            }),
+            totalBoxes: totalBoxes,
+            totalTerminals: totalTerminals
+        };
+    }
+    
+    // --- Функция скачивания спецификации ---
+    function downloadSpecification() {
+        const data = currentSpecData;
+        const date = new Date().toLocaleString('ru-RU');
+        
+        let content = `========================================\n`;
+        content += `   СПЕЦИФИКАЦИЯ КАБЕЛЬНОЙ ТРАССЫ\n`;
+        content += `   СИСТЕМА КМ | Конфигуратор\n`;
+        content += `========================================\n\n`;
+        content += `📅 Дата расчёта: ${date}\n\n`;
+        content += `--- ПАРАМЕТРЫ ТРАССЫ ---\n`;
+        content += `Категория трассы: ${data.traffic}\n`;
+        content += `Тип трубы: ${data.tubeType}\n`;
+        content += `Диаметр трубы: ${data.diameter} мм\n`;
+        content += `Сечение кабеля: ${data.cableSection} мм²\n`;
+        content += `Длина прямых участков: ${data.straightLength} м\n`;
+        content += `Количество изгибов (90°): ${data.bends} шт\n`;
+        content += `Количество рядов: ${data.rows}\n`;
+        content += `Шаг крепления: ${document.getElementById('mountSpacing').value === 'auto' ? 'Авто (подобран)' : document.getElementById('mountSpacing').value + ' м'}\n\n`;
+        
+        content += `--- РАСХОД МАТЕРИАЛОВ ---\n`;
+        content += `Труба гофрированная (общая): ${data.totalPipe} м\n`;
+        content += `Требуется бухт: ${data.coils}\n`;
+        content += `Запас на изгибы: ${data.bendReserve} м\n`;
+        content += `Заполнение кабелем: ${data.fillPercent}% ${data.fillOk ? '(норма)' : '(ПРЕВЫШЕНИЕ! Рекомендуется увеличить диаметр)'}\n\n`;
+        
+        content += `--- КРЕПЁЖ ---\n`;
+        content += `Тип крепежа: ${data.mountType}\n`;
+        content += `Количество (штук): ${data.mountPieces}\n`;
+        content += `Упаковки: ${data.mountPack}\n\n`;
+        
+        content += `--- РАСПРЕДЕЛИТЕЛЬНЫЕ КОРОБКИ ---\n`;
+        content += `Всего коробок: ${data.totalBoxes}\n`;
+        content += `Суммарно клемм: ${data.totalTerminals}\n`;
+        if(data.boxes.length > 0) {
+            content += `Детали:\n`;
+            data.boxes.forEach((b, i) => { content += `  ${i+1}. ${b}\n`; });
+        } else {
+            content += `Не добавлено ни одной коробки.\n`;
+        }
+        
+        content += `\n========================================\n`;
+        content += `© СИСТЕМА КМ — конфигуратор кабельной трассы\n`;
+        content += `https://github.com/irina-yazovaya/gofra\n`;
+        
+        const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = `specifikacia_${date.replace(/[\s:,]/g, '_')}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 
     function renderDiameterButtons() {
@@ -753,6 +843,7 @@
             if(el && el.tagName==='SELECT') el.addEventListener('change', () => performCalculation());
         });
         document.getElementById('calcBtn').addEventListener('click', () => performCalculation());
+        document.getElementById('downloadBtn').addEventListener('click', () => downloadSpecification());
         
         const trafficRadios = document.querySelectorAll('.traffic-radio');
         trafficRadios.forEach(radio => {
@@ -760,7 +851,7 @@
                 trafficRadios.forEach(r => r.classList.remove('active'));
                 radio.classList.add('active');
                 trafficType = radio.getAttribute('data-traffic');
-                filterTubeOptions();      // ВАЖНО: фильтруем трубы при смене категории
+                filterTubeOptions();
                 if(trafficType === "okl") {
                     mountCategory = "steel";
                 }
@@ -777,7 +868,7 @@
     // Инициализация
     window.addEventListener('DOMContentLoaded', () => {
         renderDiameterButtons();
-        filterTubeOptions();        // Первичный вызов — скрываем ненужные трубы для ОКЛ
+        filterTubeOptions();
         renderMountSelector();
         renderMountSubtypes();
         attachEvents();
