@@ -511,36 +511,43 @@
     const coilLengths = { 16:100, 20:100, 25:50, 32:50, 40:15, 50:15 };
     const packSizes = { 16:100, 20:100, 25:100, 32:50, 40:30, 50:20 };
 
-    // Исходные кабели: 5 штук по 1.5 мм² — должны НЕ влезать в 16 мм!
+    // 5 кабелей по 1.5 мм² — должны НЕ влезать в трубу 16 мм
     let cablesArray = [{ section: 1.5 }, { section: 1.5 }, { section: 1.5 }, { section: 1.5 }, { section: 1.5 }];
     let boxesArray = [{ material: 'steel', terminals: 4, count: 1 }];
 
-    // === КОРРЕКТНЫЙ РАСЧЁТ ВНЕШНЕГО ДИАМЕТРА КАБЕЛЯ ===
+    // === КОРРЕКТНЫЙ РАСЧЁТ ВНЕШНЕГО ДИАМЕТРА КАБЕЛЯ С ИЗОЛЯЦИЕЙ ===
     function getCableOuterDiameter(sectionMM2) {
+        // Диаметр токопроводящей жилы
         let coreDiameter = 2 * Math.sqrt(sectionMM2 / Math.PI);
-        let insulation = sectionMM2 <= 6 ? 2.0 : (sectionMM2 <= 25 ? 2.5 : 3.0);
+        // Добавляем изоляцию: для малых сечений ~3.2мм, для больших до 4мм
+        let insulation = sectionMM2 <= 6 ? 3.2 : (sectionMM2 <= 25 ? 3.5 : 4.0);
         return coreDiameter + insulation;
     }
 
+    // Площадь сечения кабеля по внешнему диаметру
     function getCableArea(sectionMM2) {
         let d = getCableOuterDiameter(sectionMM2);
         return Math.PI * Math.pow(d / 2, 2);
     }
 
+    // Внутренний диаметр гофрированной трубы (стенка ~3.5мм)
     function getInnerTubeDiameter(tubeDiameterMM) {
         return tubeDiameterMM - 3.5;
     }
 
+    // Площадь внутреннего сечения трубы
     function getTubeArea(tubeDiameterMM) {
         let innerD = getInnerTubeDiameter(tubeDiameterMM);
         if(innerD <= 0) return 0;
         return Math.PI * Math.pow(innerD / 2, 2);
     }
 
+    // Суммарная площадь всех кабелей
     function getTotalCablesArea(cables) {
         return cables.reduce((sum, c) => sum + getCableArea(c.section), 0);
     }
 
+    // Процент заполнения трубы кабелями
     function getFillPercentage(tubeDiameterMM, cables) {
         let tubeArea = getTubeArea(tubeDiameterMM);
         if(tubeArea <= 0) return 100;
@@ -548,12 +555,14 @@
         return (cablesArea / tubeArea) * 100;
     }
 
+    // Проверка соответствия нормам ПУЭ
     function isFillValid(tubeDiameterMM, cables) {
         let fillPercent = getFillPercentage(tubeDiameterMM, cables);
         let maxFill = cables.length >= 3 ? 40 : (cables.length === 2 ? 35 : 45);
         return fillPercent <= maxFill;
     }
 
+    // Минимальный рекомендуемый диаметр трубы
     function getMinRecommendedDiameter() {
         if(cablesArray.length === 0) return 16;
         for(let d of diameters) {
