@@ -127,87 +127,36 @@
             font-size: 1.2rem;
         }
 
-        /* Секции участков трассы */
-        .sections-container {
-            background: #FFFFFF;
-            border-radius: 20px;
-            padding: 12px;
-            margin-top: 8px;
-            border: 1px solid #E2E8F0;
-            max-height: 380px;
-            overflow-y: auto;
-        }
-        .section-item {
-            background: #F8FAFE;
-            padding: 12px;
-            border-radius: 20px;
-            margin-bottom: 12px;
-            border: 1px solid #E2E8F0;
-        }
-        .section-header {
+        .diameter-grid {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            font-weight: 700;
-            color: #1E293B;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 8px 0 4px;
         }
-        .section-cables {
-            margin-left: 12px;
-            margin-top: 8px;
-            padding-left: 8px;
-            border-left: 2px solid #DC2626;
-        }
-        .cable-item-mini {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 6px;
-            background: white;
-            padding: 4px 8px;
-            border-radius: 16px;
-        }
-        .cable-item-mini input {
-            width: 80px;
-            padding: 6px 8px;
-            margin: 0;
-        }
-        .remove-section, .remove-cable-mini {
-            background: #FEE2E2;
-            border: none;
-            border-radius: 30px;
-            padding: 4px 10px;
-            cursor: pointer;
-            color: #991B1B;
-            font-size: 0.7rem;
-        }
-        .add-btn {
-            background: #E2E8F0;
-            color: #1E293B;
-            margin-top: 8px;
-            font-size: 0.8rem;
-            padding: 8px;
-            border-radius: 28px;
-            text-align: center;
-            cursor: pointer;
-            width: 100%;
-            border: none;
-        }
-        .diam-select-mini {
-            width: 100px;
-            padding: 6px;
-            border-radius: 28px;
+        .diam-tile {
+            background: #F1F5F9;
             border: 1px solid #CBD5E1;
-            background: white;
-        }
-        .scroll-hint {
-            font-size: 0.65rem;
-            color: #DC2626;
+            border-radius: 44px;
+            padding: 8px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            min-width: 65px;
             text-align: center;
-            margin-top: 6px;
-            background: #FEF2F2;
-            padding: 4px;
-            border-radius: 20px;
+            transition: all 0.15s;
+        }
+        .diam-tile.selected {
+            background: #DC2626;
+            border-color: #DC2626;
+            color: white;
+        }
+        .diam-tile.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #E2E8F0;
+        }
+        .diam-tile.recommended {
+            border: 2px solid #10B981;
+            box-shadow: 0 0 0 1px #10B981;
         }
 
         .mount-selector {
@@ -260,6 +209,7 @@
             display: inline-block;
             margin-top: 6px;
         }
+
         .flex-row {
             display: flex;
             gap: 14px;
@@ -340,6 +290,61 @@
             font-size: 0.72rem;
             margin-top: 20px;
         }
+        
+        /* Кабели */
+        .cable-list {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid #E2E8F0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .cable-item {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 8px;
+            background: #F8FAFE;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        .cable-item input {
+            width: 90px;
+            margin: 0;
+        }
+        .remove-cable {
+            background: #FEE2E2;
+            border: none;
+            border-radius: 30px;
+            padding: 4px 12px;
+            cursor: pointer;
+            color: #991B1B;
+        }
+        .add-cable-btn {
+            background: #E2E8F0;
+            color: #1E293B;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 28px;
+            padding: 8px;
+            width: 100%;
+            border: none;
+        }
+        .scroll-hint {
+            font-size: 0.65rem;
+            color: #DC2626;
+            text-align: center;
+            margin-top: 6px;
+            background: #FEF2F2;
+            padding: 4px;
+            border-radius: 20px;
+        }
+        
+        /* Коробки */
         .box-list {
             background: #FFFFFF;
             border-radius: 20px;
@@ -387,6 +392,24 @@
             color: #991B1B;
             margin-left: auto;
         }
+        .auto-diam-badge {
+            background: #E0F2FE;
+            color: #0369A1;
+            padding: 6px 12px;
+            border-radius: 28px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        .recommend-badge {
+            background: #D1FAE5;
+            color: #047857;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
@@ -425,14 +448,21 @@
                 </div>
 
                 <div class="form-group">
-                    <label>📐 УЧАСТКИ ТРАССЫ (разные диаметры)</label>
-                    <div id="sectionsContainer" class="sections-container"></div>
-                    <button type="button" id="addSectionBtn" class="add-btn" style="margin-top: 8px;">+ Добавить участок</button>
-                    <div class="small-help">Каждый участок — свой диаметр трубы и набор кабелей. Длина общая для всей трассы.</div>
+                    <label>⚡ КАБЕЛИ В ТРУБЕ</label>
+                    <div id="cablesContainer" class="cable-list"></div>
+                    <div id="cableScrollHint" class="scroll-hint" style="display: none;">⬇️ Прокрутите вниз, чтобы увидеть все кабели</div>
+                    <button type="button" id="addCableBtn" class="add-cable-btn">+ Добавить кабель</button>
                 </div>
 
                 <div class="form-group">
-                    <label>📏 ДЛИНА ПРЯМОЙ ТРАССЫ (м) — общая для всех участков</label>
+                    <label>📐 ДИАМЕТР ТРУБЫ (мм)</label>
+                    <div class="auto-diam-badge" id="autoDiamHint">⚡ Рекомендуемый диаметр рассчитывается автоматически</div>
+                    <div class="diameter-grid" id="diameterGrid"></div>
+                    <div class="small-help" id="diamWarning" style="color:#DC2626;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>📏 ДЛИНА ПРЯМОЙ ТРАССЫ (м)</label>
                     <input type="number" id="straightLength" value="130" step="1">
                 </div>
 
@@ -466,7 +496,7 @@
                     <label>📦 РАСПРЕДЕЛИТЕЛЬНЫЕ КОРОБКИ</label>
                     <div id="boxesContainer" class="box-list"></div>
                     <div id="boxScrollHint" class="scroll-hint" style="display: none;">⬇️ Прокрутите вниз, чтобы увидеть все коробки</div>
-                    <button type="button" id="addBoxBtn" class="add-btn">+ Добавить коробку</button>
+                    <button type="button" id="addBoxBtn" class="add-cable-btn">+ Добавить коробку</button>
                 </div>
 
                 <button id="calcBtn">⟳ РАССЧИТАТЬ</button>
@@ -476,8 +506,13 @@
                 <h3 style="margin-bottom: 18px;">📋 СПЕЦИФИКАЦИЯ</h3>
                 
                 <div class="spec-section">
-                    <div class="spec-header">📜 ТРУБА (по участкам)</div>
-                    <div class="spec-content" id="pipeSpecContent"></div>
+                    <div class="spec-header">📜 ТРУБА</div>
+                    <div class="spec-content">
+                        <div class="result-item"><span>📏 Общая длина:</span><span class="result-number" id="totalPipeMeters">0 м</span></div>
+                        <div class="result-item"><span>📦 Бухты:</span><span id="coilInfo" style="font-weight:700;">—</span></div>
+                        <div class="result-item"><span>📐 Диаметр:</span><span id="selectedDiameter" style="font-weight:700;">—</span></div>
+                        <div class="result-item"><span>⚠️ Заполнение:</span><span id="fillStatus">—</span></div>
+                    </div>
                 </div>
                 
                 <div class="spec-section">
@@ -505,6 +540,7 @@
 
 <script>
     const diameters = [16, 20, 25, 32, 40, 50];
+    let currentDiameter = 25;
     let trafficType = "okl";
     let mountCategory = "steel";
     let plasticSubType = "gun";
@@ -513,12 +549,7 @@
     const coilLengths = { 16:100, 20:100, 25:50, 32:50, 40:15, 50:15 };
     const packSizes = { 16:100, 20:100, 25:100, 32:50, 40:30, 50:20 };
 
-    // Участки трассы: каждый { diameter, cables: [{section}] }
-    let sections = [
-        { diameter: 25, cables: [{ section: 8 }, { section: 4 }] },
-        { diameter: 16, cables: [{ section: 2.5 }] }
-    ];
-    
+    let cablesArray = [{ section: 8 }, { section: 4 }];
     let boxesArray = [{ material: 'steel', terminals: 4, count: 1 }];
 
     function getMaxTerminals(material) {
@@ -526,6 +557,7 @@
         return 10;
     }
 
+    // === Функции расчёта заполнения ===
     function getInnerDiameter(diam) { return Math.max(diam - 3.2, diam * 0.84); }
     function tubeArea(diam) { let r = getInnerDiameter(diam)/2; return Math.PI * r * r; }
     function cableOuterDiameter(sqmm) { return 2 * Math.sqrt(sqmm / Math.PI) + 1.8; }
@@ -542,16 +574,27 @@
         return { ok: percent <= maxFill, percent: percent.toFixed(1), maxFill };
     }
 
-    // Подбор минимального диаметра для набора кабелей
-    function getMinDiameterForCables(cables) {
-        if(!cables.length) return 16;
-        let requiredArea = totalCablesArea(cables);
+    // === АВТОПОДБОР МИНИМАЛЬНОГО ДИАМЕТРА ===
+    function getMinRecommendedDiameter() {
+        if(cablesArray.length === 0) return 16;
+        let requiredArea = totalCablesArea(cablesArray);
         let maxFill = 0.4;
         for(let d of diameters) {
             let areaTube = tubeArea(d);
-            if(areaTube * maxFill >= requiredArea) return d;
+            if(areaTube * maxFill >= requiredArea) {
+                return d;
+            }
         }
         return 50;
+    }
+
+    // Автоматическая установка минимального подходящего диаметра
+    function updateToMinDiameter() {
+        let minDiam = getMinRecommendedDiameter();
+        if(currentDiameter < minDiam) {
+            currentDiameter = minDiam;
+        }
+        renderDiameterButtons();
     }
 
     function filterTubeOptions() {
@@ -608,106 +651,72 @@
     function getCoilInfoRoundUp(needMeters, diam) { let coils = Math.ceil(needMeters / coilLengths[diam]); return `${coils} бухт(а) по ${coilLengths[diam]}м`; }
     function getPackInfoRoundUp(pieces, diam) { let packs = Math.ceil(pieces / packSizes[diam]); return `${packs} уп. (по ${packSizes[diam]}шт)`; }
 
-    function renderSections() {
-        const container = document.getElementById('sectionsContainer');
-        if(sections.length === 0) {
-            container.innerHTML = '<div style="padding:12px; text-align:center;">Нет участков. Добавьте первый.</div>';
-            return;
+    function renderDiameterButtons() {
+        const container = document.getElementById('diameterGrid');
+        const minRecommended = getMinRecommendedDiameter();
+        container.innerHTML = '';
+        diameters.forEach(d => {
+            const tile = document.createElement('div');
+            tile.classList.add('diam-tile');
+            if(d === currentDiameter) tile.classList.add('selected');
+            if(d === minRecommended && d !== currentDiameter) tile.classList.add('recommended');
+            tile.textContent = `${d} mm`;
+            const isValid = (d >= minRecommended);
+            if(!isValid) {
+                tile.classList.add('disabled');
+                tile.title = `⚠️ Для выбранных кабелей требуется диаметр не менее ${minRecommended} мм`;
+            }
+            tile.addEventListener('click', () => {
+                if(!isValid) return;
+                currentDiameter = d;
+                renderDiameterButtons();
+                performCalculation();
+            });
+            container.appendChild(tile);
+        });
+        
+        let hintText = `✅ Рекомендуемый минимальный диаметр: ${minRecommended} мм`;
+        if(currentDiameter > minRecommended) {
+            hintText += ` (выбран ${currentDiameter} мм — допустимо)`;
+        } else if(currentDiameter === minRecommended) {
+            hintText += ` — оптимальный выбор`;
         }
+        document.getElementById('autoDiamHint').innerHTML = `⚡ ${hintText}`;
+        document.getElementById('selectedDiameter').innerHTML = `${currentDiameter} мм`;
+    }
+
+    function renderCablesList() {
+        const container = document.getElementById('cablesContainer');
+        const hint = document.getElementById('cableScrollHint');
+        if(cablesArray.length === 0) { container.innerHTML = '<div style="padding:12px; text-align:center;">Нет кабелей</div>'; hint.style.display = 'none'; return; }
         let html = '';
-        sections.forEach((section, idx) => {
-            const minValid = getMinDiameterForCables(section.cables);
-            html += `<div class="section-item" data-section-idx="${idx}">
-                <div class="section-header">
-                    <span>📌 Участок ${idx+1}</span>
-                    <button class="remove-section" data-idx="${idx}">✕ Удалить</button>
-                </div>
-                <div class="flex-row" style="margin-bottom: 8px;">
-                    <span style="font-weight:500;">Диаметр трубы:</span>
-                    <select data-section-idx="${idx}" class="diam-select-mini">
-                        ${diameters.map(d => `<option value="${d}" ${section.diameter === d ? 'selected' : ''} ${d < minValid ? 'disabled' : ''}>${d} мм ${d < minValid ? '(недостаточен)' : ''}</option>`).join('')}
-                    </select>
-                    ${section.diameter < minValid ? '<span style="color:#DC2626; font-size:0.7rem;">⚠️ Рек. диаметр '+minValid+' мм</span>' : ''}
-                </div>
-                <div class="section-cables">
-                    <div style="font-weight:500; margin-bottom: 6px;">Кабели в участке:</div>
-                    <div id="section-cables-${idx}">
-                        ${section.cables.map((cable, cidx) => `
-                            <div class="cable-item-mini">
-                                <span>Сечение:</span>
-                                <input type="number" step="0.5" min="0.75" value="${cable.section}" data-section-idx="${idx}" data-cable-idx="${cidx}" class="cable-mini-input">
-                                <span>мм²</span>
-                                <button class="remove-cable-mini" data-section-idx="${idx}" data-cable-idx="${cidx}">✕</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button class="add-cable-mini-btn add-btn" data-section-idx="${idx}" style="margin-top: 6px; font-size:0.7rem; padding:4px;">+ Добавить кабель в участок</button>
-                </div>
+        cablesArray.forEach((cable, idx) => {
+            html += `<div class="cable-item">
+                <span>Сечение:</span>
+                <input type="number" step="0.5" min="0.75" value="${cable.section}" data-cable-idx="${idx}" class="cable-section-input" style="width:90px;">
+                <span>мм²</span>
+                <button class="remove-cable" data-idx="${idx}">✕</button>
             </div>`;
         });
         container.innerHTML = html;
+        if(cablesArray.length > 2) hint.style.display = 'block';
+        else hint.style.display = 'none';
         
-        // Обработчики
-        document.querySelectorAll('.diam-select-mini').forEach(sel => {
-            sel.addEventListener('change', (e) => {
-                let idx = parseInt(sel.dataset.sectionIdx);
-                if(!isNaN(idx) && sections[idx]) {
-                    sections[idx].diameter = parseInt(sel.value);
-                    renderSections();
-                    performCalculation();
-                }
-            });
-        });
-        document.querySelectorAll('.remove-section').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                let idx = parseInt(btn.dataset.idx);
-                sections.splice(idx, 1);
-                renderSections();
-                performCalculation();
-            });
-        });
-        document.querySelectorAll('.cable-mini-input').forEach(inp => {
-            inp.addEventListener('change', (e) => {
-                let sectionIdx = parseInt(inp.dataset.sectionIdx);
-                let cableIdx = parseInt(inp.dataset.cableIdx);
-                let val = parseFloat(inp.value);
-                if(!isNaN(val) && val > 0 && sections[sectionIdx] && sections[sectionIdx].cables[cableIdx]) {
-                    sections[sectionIdx].cables[cableIdx].section = val;
-                    renderSections();
-                    performCalculation();
-                }
-            });
-        });
-        document.querySelectorAll('.remove-cable-mini').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                let sectionIdx = parseInt(btn.dataset.sectionIdx);
-                let cableIdx = parseInt(btn.dataset.cableIdx);
-                if(sections[sectionIdx] && sections[sectionIdx].cables[cableIdx]) {
-                    sections[sectionIdx].cables.splice(cableIdx, 1);
-                    if(sections[sectionIdx].cables.length === 0) {
-                        sections[sectionIdx].cables.push({ section: 2.5 });
-                    }
-                    renderSections();
-                    performCalculation();
-                }
-            });
-        });
-        document.querySelectorAll('.add-cable-mini-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                let sectionIdx = parseInt(btn.dataset.sectionIdx);
-                if(sections[sectionIdx]) {
-                    sections[sectionIdx].cables.push({ section: 2.5 });
-                    renderSections();
-                    performCalculation();
-                }
-            });
-        });
-    }
-
-    function addSection() {
-        sections.push({ diameter: 20, cables: [{ section: 2.5 }] });
-        renderSections();
-        performCalculation();
+        document.querySelectorAll('.cable-section-input').forEach(inp => inp.addEventListener('change', (e) => {
+            let idx = parseInt(inp.dataset.cableIdx);
+            let val = parseFloat(inp.value);
+            if(!isNaN(val) && val > 0) cablesArray[idx].section = val;
+            updateToMinDiameter();
+            performCalculation();
+        }));
+        document.querySelectorAll('.remove-cable').forEach(btn => btn.addEventListener('click', (e) => {
+            let idx = parseInt(btn.dataset.idx);
+            cablesArray.splice(idx, 1);
+            if(cablesArray.length === 0) cablesArray.push({ section: 1.5 });
+            renderCablesList();
+            updateToMinDiameter();
+            performCalculation();
+        }));
     }
 
     function renderBoxesList() {
@@ -822,6 +831,13 @@
         }
     }
 
+    function addCable() { 
+        cablesArray.push({ section: 1.5 }); 
+        renderCablesList(); 
+        updateToMinDiameter();
+        performCalculation(); 
+    }
+    
     function addBox() { 
         boxesArray.push({ material: 'steel', terminals: 4, count: 1 }); 
         renderBoxesList(); 
@@ -835,32 +851,29 @@
         let rows = parseInt(document.getElementById('rowsCount').value) || 1;
         let spacingMode = document.getElementById('mountSpacing').value;
 
-        const pipeMetersTotal = totalPipeWithRows(straight, bends, rows);
+        const pipeMeters = totalPipeWithRows(straight, bends, rows);
+        document.getElementById('totalPipeMeters').innerHTML = pipeMeters.toFixed(1) + ' м';
+        document.getElementById('coilInfo').innerHTML = getCoilInfoRoundUp(pipeMeters, currentDiameter);
         
-        // Формируем спецификацию по участкам
-        let pipeSpecHtml = '';
-        let totalCoilsInfo = [];
-        for(let i = 0; i < sections.length; i++) {
-            const sec = sections[i];
-            const fill = checkFill(sec.diameter, sec.cables);
-            const coils = getCoilInfoRoundUp(pipeMetersTotal, sec.diameter);
-            totalCoilsInfo.push(`Уч.${i+1}: Ø${sec.diameter}мм — ${coils}`);
-            pipeSpecHtml += `<div class="result-item"><span>📌 Участок ${i+1} (Ø${sec.diameter} мм):</span><span>${sec.cables.map(c => c.section).join(', ')} мм² — ${fill.percent}% ${fill.ok ? '✅' : '⚠️'}</span></div>`;
+        const fill = checkFill(currentDiameter, cablesArray);
+        const minRecommended = getMinRecommendedDiameter();
+        let fillHtml = `${fill.percent}% `;
+        if(fill.ok) {
+            fillHtml += `✓ норма (≤${fill.maxFill}%)`;
+        } else {
+            fillHtml += `⚠️ ПРЕВЫШЕНИЕ! Рекомендуемый диаметр: ${minRecommended} мм`;
         }
-        pipeSpecHtml += `<div class="result-item"><span>📦 Бухты по участкам:</span><span>${totalCoilsInfo.join('; ')}</span></div>`;
-        document.getElementById('pipeSpecContent').innerHTML = pipeSpecHtml;
+        document.getElementById('fillStatus').innerHTML = fillHtml;
 
-        // Крепёж (один на всю трассу)
-        let spacing = spacingMode === 'auto' ? getBaseSpacing(sections[0]?.diameter || 25, tubeType, mountCategory === 'steel') : parseFloat(spacingMode);
+        let spacing = spacingMode === 'auto' ? getBaseSpacing(currentDiameter, tubeType, mountCategory === 'steel') : parseFloat(spacingMode);
         spacing = Math.min(1.3, Math.max(0.55, spacing));
-        let mountPieces = calcMounts(pipeMetersTotal, spacing, bends, mountCategory === 'steel', rows);
+        let mountPieces = calcMounts(pipeMeters, spacing, bends, mountCategory === 'steel', rows);
         mountPieces = Math.ceil(mountPieces);
         document.getElementById('mountPcs').innerHTML = mountPieces;
-        document.getElementById('mountPackInfo').innerHTML = getPackInfoRoundUp(mountPieces, sections[0]?.diameter || 25);
+        document.getElementById('mountPackInfo').innerHTML = getPackInfoRoundUp(mountPieces, currentDiameter);
         let mountTypeStr = mountCategory === 'steel' ? (steelSubType === 'single' ? 'Стальная скоба однолапковая' : 'Стальная скоба двухлапковая') : (plasticSubType === 'gun' ? 'Клипса под пистолет' : 'Клипса под отвертку');
         document.getElementById('mountTypeLabel').innerHTML = mountTypeStr;
 
-        // Коробки
         let totalBoxes = 0;
         let boxesDetail = [];
         boxesArray.forEach(b => {
@@ -872,15 +885,22 @@
         document.getElementById('totalBoxesCount').innerHTML = totalBoxes;
         document.getElementById('boxesDetails').innerHTML = boxesDetail.join(', ') || '—';
         
-        let infoText = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'} | Общая длина: ${pipeMetersTotal.toFixed(1)} м<br>`;
+        let infoText = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'} | Заполнение: ${fill.percent}% ${fill.ok ? '(норма)' : '(превышение!)'}<br>`;
         infoText += `🔧 Шаг крепления: ${spacing.toFixed(2)} м<br>`;
-        infoText += `📎 Коробки: сталь (макс. 12 клемм), пластик АП/ПП (макс. 10)`;
+        infoText += `📎 Коробки: сталь (макс. 12 клемм), пластик АП/ПП (макс. 10)<br>`;
+        infoText += `💡 Совет: система автоматически подбирает минимальный диаметр трубы под ваши кабели.`;
         document.getElementById('ruleInfo').innerHTML = infoText;
+        
+        if(currentDiameter < minRecommended) {
+            document.getElementById('diamWarning').innerHTML = `⚠️ Внимание! Выбранный диаметр ${currentDiameter} мм недостаточен. Рекомендуется ${minRecommended} мм.`;
+        } else {
+            document.getElementById('diamWarning').innerHTML = '';
+        }
     }
 
     function attachEvents() {
         document.getElementById('calcBtn').onclick = performCalculation;
-        document.getElementById('addSectionBtn').onclick = addSection;
+        document.getElementById('addCableBtn').onclick = addCable;
         document.getElementById('addBoxBtn').onclick = addBox;
         document.getElementById('tubeType').onchange = performCalculation;
         document.getElementById('straightLength').oninput = performCalculation;
@@ -903,8 +923,9 @@
         filterTubeOptions();
         renderMountSelector();
         renderMountSubtypes();
-        renderSections();
+        renderCablesList();
         renderBoxesList();
+        updateToMinDiameter();
         attachEvents();
         performCalculation();
     });
