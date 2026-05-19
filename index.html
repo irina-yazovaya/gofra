@@ -244,21 +244,37 @@
             margin-top: 8px;
         }
         button:hover { background: #B91C1C; }
-        .result-block {
+        
+        /* Спецификация: три блока */
+        .spec-section {
+            margin-bottom: 20px;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .spec-header {
+            background: #F1F5F9;
+            padding: 10px 16px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            color: #1E293B;
+            border-bottom: 2px solid #DC2626;
+        }
+        .spec-content {
             background: white;
-            border-radius: 24px;
-            padding: 4px 0;
-            margin-bottom: 28px;
+            padding: 8px 0;
         }
         .result-item {
             display: flex;
             justify-content: space-between;
-            padding: 14px 8px;
+            padding: 12px 16px;
             border-bottom: 1px solid #E9EEF3;
+        }
+        .result-item:last-child {
+            border-bottom: none;
         }
         .result-number {
             font-weight: 800;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             color: #DC2626;
         }
         .info-panel {
@@ -305,52 +321,61 @@
             margin-top: 8px;
             font-size: 0.8rem;
         }
+        .scroll-hint {
+            font-size: 0.65rem;
+            color: #DC2626;
+            text-align: center;
+            margin-top: 6px;
+            background: #FEF2F2;
+            padding: 4px;
+            border-radius: 20px;
+        }
         .box-list {
             background: #FFFFFF;
             border-radius: 20px;
             padding: 12px;
             margin-top: 8px;
             border: 1px solid #E2E8F0;
-            max-height: 280px;
+            max-height: 320px;
             overflow-y: auto;
         }
         .box-item {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 12px;
             background: #F8FAFE;
-            padding: 8px 12px;
+            padding: 12px;
             border-radius: 20px;
+            margin-bottom: 12px;
+            border: 1px solid #E2E8F0;
+        }
+        .box-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
         }
-        .box-item select, .box-item input {
-            width: auto;
+        .box-row select {
+            flex: 2;
+            min-width: 180px;
             margin: 0;
         }
-        .box-item input[type="number"] {
-            width: 70px;
+        .box-row input {
+            width: 100px;
+            margin: 0;
+        }
+        .box-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #475569;
+            min-width: 70px;
         }
         .remove-box {
             background: #FEE2E2;
             border: none;
             border-radius: 30px;
-            padding: 4px 12px;
+            padding: 6px 16px;
             cursor: pointer;
             color: #991B1B;
-        }
-        .box-count-group {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 12px;
-            background: #F8FAFE;
-            padding: 10px 12px;
-            border-radius: 20px;
-        }
-        .box-count-group input {
-            width: 80px;
-            margin: 0;
+            margin-left: auto;
         }
         .auto-diam-badge {
             background: #E0F2FE;
@@ -361,15 +386,6 @@
             font-weight: 600;
             display: inline-block;
             margin-bottom: 8px;
-        }
-        .warning-fill {
-            background: #FEF3C7;
-            color: #D97706;
-            border-radius: 20px;
-            padding: 2px 8px;
-            font-size: 0.7rem;
-            display: inline-block;
-            margin-left: 8px;
         }
     </style>
 </head>
@@ -411,6 +427,7 @@
                 <div class="form-group">
                     <label>⚡ КАБЕЛИ В ТРУБЕ</label>
                     <div id="cablesContainer" class="cable-list"></div>
+                    <div id="cableScrollHint" class="scroll-hint" style="display: none;">⬇️ Прокрутите вниз, чтобы увидеть все кабели</div>
                     <button type="button" id="addCableBtn" class="add-cable-btn">+ Добавить кабель</button>
                 </div>
 
@@ -463,20 +480,36 @@
 
             <div class="panel-right">
                 <h3 style="margin-bottom: 18px;">📋 СПЕЦИФИКАЦИЯ</h3>
-                <div class="result-block">
-                    <div class="result-item"><span>📜 Труба общая:</span><span class="result-number" id="totalPipeMeters">0 м</span></div>
-                    <div class="result-item"><span>📦 Бухты:</span><span id="coilInfo" style="font-weight:700;">—</span></div>
-                    <div class="result-item"><span>🔩 Крепёж (шт):</span><span id="mountPcs" style="font-weight:700;color:#DC2626;">0</span></div>
-                    <div class="result-item"><span>📦 Упаковки:</span><span id="mountPackInfo">—</span></div>
-                    <div class="result-item"><span>🧷 Тип крепежа:</span><span id="mountTypeLabel">—</span></div>
-                    <div class="result-item"><span>🔄 Запас на изгибы:</span><span id="bendReserve">0 м</span></div>
-                    <div class="result-item"><span>⚠️ Заполнение:</span><span id="fillStatus">—</span></div>
+                
+                <!-- БЛОК 1: ТРУБА -->
+                <div class="spec-section">
+                    <div class="spec-header">📜 ТРУБА</div>
+                    <div class="spec-content">
+                        <div class="result-item"><span>📏 Общая длина:</span><span class="result-number" id="totalPipeMeters">0 м</span></div>
+                        <div class="result-item"><span>📦 Бухты:</span><span id="coilInfo" style="font-weight:700;">—</span></div>
+                        <div class="result-item"><span>📐 Выбранный диаметр:</span><span id="selectedDiameter" style="font-weight:700;">—</span></div>
+                    </div>
                 </div>
-                <div class="result-block">
-                    <div class="result-item"><span>📦 Коробок всего:</span><span id="totalBoxesCount">0</span></div>
-                    <div class="result-item"><span>⚡ Суммарно клемм:</span><span id="totalTerminalsSum">0</span></div>
-                    <div class="result-item"><span>📋 Детали коробок:</span><span id="boxesDetails" style="font-size:0.7rem;">—</span></div>
+                
+                <!-- БЛОК 2: КРЕПЁЖ -->
+                <div class="spec-section">
+                    <div class="spec-header">🔩 КРЕПЁЖ</div>
+                    <div class="spec-content">
+                        <div class="result-item"><span>🧷 Тип:</span><span id="mountTypeLabel">—</span></div>
+                        <div class="result-item"><span>🔩 Количество (шт):</span><span id="mountPcs" style="font-weight:700;color:#DC2626;">0</span></div>
+                        <div class="result-item"><span>📦 Упаковки:</span><span id="mountPackInfo">—</span></div>
+                    </div>
                 </div>
+                
+                <!-- БЛОК 3: КОРОБКИ (без клемм в деталях) -->
+                <div class="spec-section">
+                    <div class="spec-header">📦 РАСПРЕДЕЛИТЕЛЬНЫЕ КОРОБКИ</div>
+                    <div class="spec-content">
+                        <div class="result-item"><span>📦 Всего коробок:</span><span id="totalBoxesCount">0</span></div>
+                        <div class="result-item"><span>📋 Состав:</span><span id="boxesDetails" style="font-size:0.75rem; text-align:right;">—</span></div>
+                    </div>
+                </div>
+                
                 <div class="info-panel" id="ruleInfo"></div>
             </div>
         </div>
@@ -498,13 +531,11 @@
     // boxesArray: каждый элемент { material, terminals, count }
     let boxesArray = [{ material: 'steel', terminals: 4, count: 1 }];
 
-    // Максимальное количество клемм в зависимости от материала
     function getMaxTerminals(material) {
         if(material === 'steel') return 12;
-        return 10; // plastic_ap и pp_membrane
+        return 10;
     }
 
-    // === Функции расчёта заполнения ===
     function getInnerDiameter(diam) { return Math.max(diam - 3.2, diam * 0.84); }
     function tubeArea(diam) { let r = getInnerDiameter(diam)/2; return Math.PI * r * r; }
     function cableOuterDiameter(sqmm) { return 2 * Math.sqrt(sqmm / Math.PI) + 1.8; }
@@ -521,21 +552,17 @@
         return { ok: percent <= maxFill, percent: percent.toFixed(1), maxFill };
     }
     
-    // === АВТОПОДБОР ДИАМЕТРА ===
     function getMinValidDiameter() {
         if(cablesArray.length === 0) return 16;
         let requiredArea = totalCablesArea(cablesArray);
         let maxFill = 0.4;
         for(let d of diameters) {
             let areaTube = tubeArea(d);
-            if(areaTube * maxFill >= requiredArea) {
-                return d;
-            }
+            if(areaTube * maxFill >= requiredArea) return d;
         }
         return 50;
     }
 
-    // === Фильтр труб по ОКЛ ===
     function filterTubeOptions() {
         const tubeSelect = document.getElementById('tubeType');
         const isOkl = (trafficType === "okl");
@@ -590,7 +617,6 @@
     function getCoilInfoRoundUp(needMeters, diam) { let coils = Math.ceil(needMeters / coilLengths[diam]); return `${coils} бухт(а) по ${coilLengths[diam]}м`; }
     function getPackInfoRoundUp(pieces, diam) { let packs = Math.ceil(pieces / packSizes[diam]); return `${packs} уп. (по ${packSizes[diam]}шт)`; }
 
-    // === UI ===
     function renderDiameterButtons() {
         const container = document.getElementById('diameterGrid');
         const minValid = getMinValidDiameter();
@@ -636,11 +662,13 @@
             }
         });
         document.getElementById('autoDiamHint').innerHTML = `✅ Минимальный подходящий диаметр: ${minValid} мм`;
+        document.getElementById('selectedDiameter').innerHTML = `${currentDiameter} мм`;
     }
 
     function renderCablesList() {
         const container = document.getElementById('cablesContainer');
-        if(cablesArray.length === 0) { container.innerHTML = '<div style="padding:12px; text-align:center;">Нет кабелей</div>'; return; }
+        const hint = document.getElementById('cableScrollHint');
+        if(cablesArray.length === 0) { container.innerHTML = '<div style="padding:12px; text-align:center;">Нет кабелей</div>'; hint.style.display = 'none'; return; }
         let html = '';
         cablesArray.forEach((cable, idx) => {
             html += `<div class="cable-item">
@@ -651,6 +679,9 @@
             </div>`;
         });
         container.innerHTML = html;
+        if(cablesArray.length > 2) hint.style.display = 'block';
+        else hint.style.display = 'none';
+        
         document.querySelectorAll('.cable-section-input').forEach(inp => inp.addEventListener('change', (e) => {
             let idx = parseInt(inp.dataset.cableIdx);
             let val = parseFloat(inp.value);
@@ -680,19 +711,22 @@
         let html = '';
         boxesArray.forEach((box, idx) => {
             let maxTerm = getMaxTerminals(box.material);
-            let materialText = box.material === 'steel' ? 'Сталь' : (box.material === 'plastic_ap' ? 'Пластик с антипиренами' : 'ПП с мембраной (двухкомпонентная)');
             html += `<div class="box-item">
-                <select data-box-idx="${idx}" class="box-material-select" style="width:200px;">
-                    <option value="steel" ${box.material === 'steel' ? 'selected' : ''}>Сталь (макс. ${getMaxTerminals('steel')} клемм)</option>
-                    <option value="plastic_ap" ${box.material === 'plastic_ap' ? 'selected' : ''}>Пластик с антипиренами (макс. 10)</option>
-                    <option value="pp_membrane" ${box.material === 'pp_membrane' ? 'selected' : ''}>ПП с мембраной (макс. 10)</option>
-                </select>
-                <span>Кол-во:</span>
-                <input type="number" min="1" max="999" value="${box.count}" data-box-idx="${idx}" class="box-count-input" style="width:70px;">
-                <span>Клемм/кор:</span>
-                <input type="number" min="1" max="${maxTerm}" value="${box.terminals}" data-box-idx="${idx}" class="box-terminals-input" style="width:70px;">
-                <button class="remove-box" data-idx="${idx}">✕</button>
-                <span style="font-size:0.7rem; color:#475569;">${materialText}</span>
+                <div class="box-row">
+                    <span class="box-label">Тип корпуса:</span>
+                    <select data-box-idx="${idx}" class="box-material-select">
+                        <option value="steel" ${box.material === 'steel' ? 'selected' : ''}>Сталь (макс. 12 клемм)</option>
+                        <option value="plastic_ap" ${box.material === 'plastic_ap' ? 'selected' : ''}>Пластик с антипиренами (макс. 10)</option>
+                        <option value="pp_membrane" ${box.material === 'pp_membrane' ? 'selected' : ''}>ПП с мембраной (макс. 10)</option>
+                    </select>
+                    <button class="remove-box" data-idx="${idx}">✕</button>
+                </div>
+                <div class="box-row">
+                    <span class="box-label">Количество:</span>
+                    <input type="number" min="1" value="${box.count}" data-box-idx="${idx}" class="box-count-input" style="width:100px;">
+                    <span class="box-label">Клемм на коробку:</span>
+                    <input type="number" min="1" max="${maxTerm}" value="${box.terminals}" data-box-idx="${idx}" class="box-terminals-input" style="width:80px;">
+                </div>
             </div>`;
         });
         container.innerHTML = html;
@@ -712,7 +746,6 @@
             if(!isNaN(idx) && boxesArray[idx]) {
                 let val = parseInt(inp.value);
                 boxesArray[idx].count = Math.max(1, isNaN(val) ? 1 : val);
-                renderBoxesList();
                 performCalculation();
             }
         }));
@@ -786,19 +819,12 @@
 
         const pipeMeters = totalPipeWithRows(straight, bends, rows);
         document.getElementById('totalPipeMeters').innerHTML = pipeMeters.toFixed(1) + ' м';
-        document.getElementById('bendReserve').innerHTML = (bends * 0.5 * rows).toFixed(1) + ' м';
         document.getElementById('coilInfo').innerHTML = getCoilInfoRoundUp(pipeMeters, currentDiameter);
+        document.getElementById('selectedDiameter').innerHTML = `${currentDiameter} мм`;
 
         const fill = checkFillByCables(currentDiameter, cablesArray);
         const minValid = getMinValidDiameter();
-        let fillHtml = `${fill.percent}% `;
-        if(fill.ok) {
-            fillHtml += `✓ норма (≤${fill.maxFill}%)`;
-        } else {
-            fillHtml += `⚠️ ПРЕВЫШЕНИЕ! Минимальный диаметр: ${minValid} мм`;
-        }
-        document.getElementById('fillStatus').innerHTML = fillHtml;
-
+        
         let spacing = spacingMode === 'auto' ? getBaseSpacing(currentDiameter, tubeType, mountCategory === 'steel') : parseFloat(spacingMode);
         spacing = Math.min(1.3, Math.max(0.55, spacing));
         let mountPieces = calcMounts(pipeMeters, spacing, bends, mountCategory === 'steel', rows);
@@ -808,25 +834,20 @@
         let mountTypeStr = mountCategory === 'steel' ? (steelSubType === 'single' ? 'Стальная скоба однолапковая' : 'Стальная скоба двухлапковая') : (plasticSubType === 'gun' ? 'Клипса под пистолет' : 'Клипса под отвертку');
         document.getElementById('mountTypeLabel').innerHTML = mountTypeStr;
 
-        // Подсчёт коробок с учётом количества
         let totalBoxes = 0;
-        let totalTerminals = 0;
         let boxesDetail = [];
         boxesArray.forEach(b => {
             let cnt = b.count || 1;
             totalBoxes += cnt;
-            totalTerminals += cnt * b.terminals;
             let name = b.material === 'steel' ? 'Сталь' : (b.material === 'plastic_ap' ? 'Пластик АП' : 'ПП мембрана');
-            boxesDetail.push(`${name} (${b.terminals} кл) ×${cnt}`);
+            boxesDetail.push(`${name} ×${cnt}`);
         });
         document.getElementById('totalBoxesCount').innerHTML = totalBoxes;
-        document.getElementById('totalTerminalsSum').innerHTML = totalTerminals;
         document.getElementById('boxesDetails').innerHTML = boxesDetail.join(', ') || '—';
         
-        let infoText = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'} | Труба Ø${currentDiameter} мм, рядов: ${rows}<br>`;
-        infoText += `📦 Заполнение: ${fill.percent}% ${fill.ok ? '(норма)' : '(превышение!)'}<br>`;
-        infoText += `🔧 ${mountTypeStr}, шаг ${spacing.toFixed(2)} м, упаковка ${packSizes[currentDiameter]} шт.<br>`;
-        infoText += `📎 Распределительные коробки: сталь (макс. 12 клемм), пластик АП (макс. 10), ПП мембрана (макс. 10).`;
+        let infoText = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'} | Заполнение: ${fill.percent}% ${fill.ok ? '(норма)' : '(превышение!)'}<br>`;
+        infoText += `🔧 Шаг крепления: ${spacing.toFixed(2)} м<br>`;
+        infoText += `📎 Коробки: сталь (макс. 12 клемм), пластик АП/ПП (макс. 10)`;
         document.getElementById('ruleInfo').innerHTML = infoText;
         
         if(currentDiameter < minValid) {
