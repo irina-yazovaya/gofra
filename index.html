@@ -1,3 +1,6 @@
+Вот финальная версия — для ОКЛ доступны только трубы ПНД+антипирены и ПВХ, остальное без изменений.
+
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -183,6 +186,16 @@
             font-size: 0.7rem;
             color: #5B6E8C;
         }
+        .warning-badge {
+            background: #FEF3C7;
+            color: #D97706;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 6px;
+        }
 
         .flex-row {
             display: flex;
@@ -287,16 +300,6 @@
             color: #1E293B;
             margin-top: 8px;
             font-size: 0.8rem;
-        }
-        .warning-badge {
-            background: #FEF3C7;
-            color: #D97706;
-            border-radius: 20px;
-            padding: 2px 8px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            display: inline-block;
-            margin-left: 8px;
         }
     </style>
 </head>
@@ -405,7 +408,7 @@
                     <div class="result-item"><span>📋 Детали коробок:</span><span id="boxesDetails" style="font-size:0.7rem;">—</span></div>
                 </div>
                 <div class="info-panel" id="ruleInfo">
-                    ⚙️ Для ОКЛ-трассы доступны только стальные скобы.<br>
+                    ⚙️ Для ОКЛ-трассы доступны только трубы ПНД+антипирены и ПВХ, а также только стальные скобы.<br>
                     📦 Фасовка трубы: 16/20мм=100м, 25/32=50м, 40/50=15м. Упаковки крепежа округляются вверх.
                 </div>
             </div>
@@ -427,7 +430,7 @@
 
     let boxesArray = [];
 
-    // --- Фильтр труб по категории ---
+    // --- Функция фильтрации трубы по категории (ОКЛ: только ПНД+антипирены и ПВХ) ---
     function filterTubeOptions() {
         const tubeSelect = document.getElementById('tubeType');
         const isOkl = (trafficType === "okl");
@@ -435,6 +438,7 @@
         for(let i = 0; i < options.length; i++) {
             const val = options[i].value;
             if(isOkl) {
+                // Для ОКЛ доступны только pnd_antipyr и pvc
                 if(val === 'pnd_antipyr' || val === 'pvc') {
                     options[i].style.display = '';
                 } else {
@@ -444,6 +448,7 @@
                 options[i].style.display = '';
             }
         }
+        // Если текущее выбранное значение скрыто — переключаем на первое доступное
         let currentVal = tubeSelect.value;
         let currentVisible = false;
         for(let i = 0; i < options.length; i++) {
@@ -518,11 +523,10 @@
         const isOkl = (trafficType === "okl");
         
         // Для ОКЛ блокируем выбор пластика
-        const steelDisabled = false;
         const plasticDisabled = isOkl;  // если ОКЛ — пластик недоступен
         
         container.innerHTML = `
-            <div class="mount-card ${mountCategory === 'steel' ? 'active' : ''} ${steelDisabled ? 'disabled' : ''}" data-mount="steel">
+            <div class="mount-card ${mountCategory === 'steel' ? 'active' : ''}" data-mount="steel">
                 <div class="mount-icon">🔩</div>
                 <div class="mount-title">Стальные скобы</div>
                 <div class="mount-desc">Однолапковые / двухлапковые</div>
@@ -754,7 +758,7 @@
                 trafficRadios.forEach(r => r.classList.remove('active'));
                 radio.classList.add('active');
                 trafficType = radio.getAttribute('data-traffic');
-                filterTubeOptions();
+                filterTubeOptions();                // Фильтруем трубы (ОКЛ: только ПНД+антипирены и ПВХ)
                 // При смене на ОКЛ — принудительно ставим стальные скобы
                 if(trafficType === "okl") {
                     mountCategory = "steel";
@@ -772,7 +776,7 @@
     // Инициализация
     window.addEventListener('DOMContentLoaded', () => {
         renderDiameterButtons();
-        filterTubeOptions();
+        filterTubeOptions();        // Первичная фильтрация (по умолчанию ОКЛ)
         renderMountSelector();
         renderMountSubtypes();
         attachEvents();
@@ -783,3 +787,4 @@
 </script>
 </body>
 </html>
+```
