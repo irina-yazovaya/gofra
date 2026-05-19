@@ -95,11 +95,6 @@
             background: white;
             font-size: 0.9rem;
         }
-        select:focus, input:focus {
-            border-color: #DC2626;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(220,38,38,0.2);
-        }
         .traffic-type {
             display: flex;
             gap: 16px;
@@ -126,7 +121,6 @@
         .traffic-icon {
             font-size: 1.2rem;
         }
-
         .diameter-grid {
             display: flex;
             flex-wrap: wrap;
@@ -146,8 +140,8 @@
         }
         .diam-tile.selected {
             background: #DC2626;
-            border-color: #DC2626;
             color: white;
+            border-color: #DC2626;
         }
         .diam-tile.disabled {
             opacity: 0.4;
@@ -156,9 +150,8 @@
         }
         .diam-tile.recommended {
             border: 2px solid #10B981;
-            box-shadow: 0 0 0 1px #10B981;
+            position: relative;
         }
-
         .mount-selector {
             display: flex;
             gap: 20px;
@@ -209,7 +202,6 @@
             display: inline-block;
             margin-top: 6px;
         }
-
         .flex-row {
             display: flex;
             gap: 14px;
@@ -249,8 +241,6 @@
             margin-top: 8px;
         }
         button:hover { background: #B91C1C; }
-        
-        /* Спецификация */
         .spec-section {
             margin-bottom: 20px;
             border-radius: 20px;
@@ -290,8 +280,6 @@
             font-size: 0.72rem;
             margin-top: 20px;
         }
-        
-        /* Кабели */
         .cable-list {
             background: #FFFFFF;
             border-radius: 20px;
@@ -343,8 +331,6 @@
             padding: 4px;
             border-radius: 20px;
         }
-        
-        /* Коробки */
         .box-list {
             background: #FFFFFF;
             border-radius: 20px;
@@ -402,14 +388,6 @@
             display: inline-block;
             margin-bottom: 8px;
         }
-        .recommend-badge {
-            background: #D1FAE5;
-            color: #047857;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            margin-left: 8px;
-        }
     </style>
 </head>
 <body>
@@ -422,21 +400,15 @@
             </div>
             <div class="brand-logo"><span>СИСТЕМА</span> КМ</div>
         </div>
-
         <div class="two-columns">
             <div class="panel-left">
                 <div class="form-group">
                     <label>⚠️ КАТЕГОРИЯ ТРАССЫ</label>
                     <div class="traffic-type" id="trafficTypeGroup">
-                        <div data-traffic="okl" class="traffic-radio active">
-                            <span class="traffic-icon">🔥</span> ОКЛ (огнестойкая кабельная линия)
-                        </div>
-                        <div data-traffic="non_okl" class="traffic-radio">
-                            <span class="traffic-icon">📁</span> Кабельная трасса общего назначения
-                        </div>
+                        <div data-traffic="okl" class="traffic-radio active"><span class="traffic-icon">🔥</span> ОКЛ (огнестойкая кабельная линия)</div>
+                        <div data-traffic="non_okl" class="traffic-radio"><span class="traffic-icon">📁</span> Кабельная трасса общего назначения</div>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>📀 СОСТАВ ГОФРИРОВАННОЙ ТРУБЫ</label>
                     <select id="tubeType">
@@ -446,42 +418,35 @@
                         <option value="pnd_black">⚫ ПНД чёрная</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>⚡ КАБЕЛИ В ТРУБЕ</label>
                     <div id="cablesContainer" class="cable-list"></div>
                     <div id="cableScrollHint" class="scroll-hint" style="display: none;">⬇️ Прокрутите вниз, чтобы увидеть все кабели</div>
                     <button type="button" id="addCableBtn" class="add-cable-btn">+ Добавить кабель</button>
                 </div>
-
                 <div class="form-group">
                     <label>📐 ДИАМЕТР ТРУБЫ (мм)</label>
                     <div class="auto-diam-badge" id="autoDiamHint">⚡ Рекомендуемый диаметр рассчитывается автоматически</div>
                     <div class="diameter-grid" id="diameterGrid"></div>
                     <div class="small-help" id="diamWarning" style="color:#DC2626;"></div>
                 </div>
-
                 <div class="form-group">
                     <label>📏 ДЛИНА ПРЯМОЙ ТРАССЫ (м)</label>
                     <input type="number" id="straightLength" value="130" step="1">
                 </div>
-
                 <div class="form-group">
                     <label>🔄 КОЛИЧЕСТВО ИЗГИБОВ (90°)</label>
                     <input type="number" id="bendsCount" value="5" step="1">
                 </div>
-
                 <div class="form-group">
                     <label>📚 КОЛИЧЕСТВО РЯДОВ</label>
                     <input type="number" id="rowsCount" value="2" step="1" min="1">
                 </div>
-
                 <div class="form-group">
                     <label>⛓️ ТИП КРЕПЕЖА</label>
                     <div id="mountSelectorArea" class="mount-selector"></div>
                     <div id="mountSubtypeArea"></div>
                 </div>
-
                 <div class="form-group">
                     <label>📌 ШАГ КРЕПЛЕНИЯ</label>
                     <select id="mountSpacing">
@@ -491,20 +456,16 @@
                         <option value="1.1">1.1 м</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>📦 РАСПРЕДЕЛИТЕЛЬНЫЕ КОРОБКИ</label>
                     <div id="boxesContainer" class="box-list"></div>
                     <div id="boxScrollHint" class="scroll-hint" style="display: none;">⬇️ Прокрутите вниз, чтобы увидеть все коробки</div>
                     <button type="button" id="addBoxBtn" class="add-cable-btn">+ Добавить коробку</button>
                 </div>
-
                 <button id="calcBtn">⟳ РАССЧИТАТЬ</button>
             </div>
-
             <div class="panel-right">
                 <h3 style="margin-bottom: 18px;">📋 СПЕЦИФИКАЦИЯ</h3>
-                
                 <div class="spec-section">
                     <div class="spec-header">📜 ТРУБА</div>
                     <div class="spec-content">
@@ -514,7 +475,6 @@
                         <div class="result-item"><span>⚠️ Заполнение:</span><span id="fillStatus">—</span></div>
                     </div>
                 </div>
-                
                 <div class="spec-section">
                     <div class="spec-header">🔩 КРЕПЁЖ</div>
                     <div class="spec-content">
@@ -523,7 +483,6 @@
                         <div class="result-item"><span>📦 Упаковки:</span><span id="mountPackInfo">—</span></div>
                     </div>
                 </div>
-                
                 <div class="spec-section">
                     <div class="spec-header">📦 РАСПРЕДЕЛИТЕЛЬНЫЕ КОРОБКИ</div>
                     <div class="spec-content">
@@ -531,14 +490,16 @@
                         <div class="result-item"><span>📋 Состав:</span><span id="boxesDetails" style="font-size:0.75rem; text-align:right;">—</span></div>
                     </div>
                 </div>
-                
                 <div class="info-panel" id="ruleInfo"></div>
             </div>
         </div>
     </div>
 </div>
-
 <script>
+    // ============================================================
+    // ПРАВИЛЬНЫЙ РАСЧЁТ С УЧЁТОМ ВНЕШНЕГО ДИАМЕТРА КАБЕЛЯ И 40% ЗАПОЛНЕНИЯ
+    // ============================================================
+    
     const diameters = [16, 20, 25, 32, 40, 50];
     let currentDiameter = 25;
     let trafficType = "okl";
@@ -549,39 +510,63 @@
     const coilLengths = { 16:100, 20:100, 25:50, 32:50, 40:15, 50:15 };
     const packSizes = { 16:100, 20:100, 25:100, 32:50, 40:30, 50:20 };
 
-    let cablesArray = [{ section: 8 }, { section: 4 }];
+    let cablesArray = [{ section: 1.5 }, { section: 1.5 }, { section: 1.5 }];
     let boxesArray = [{ material: 'steel', terminals: 4, count: 1 }];
 
-    function getMaxTerminals(material) {
-        if(material === 'steel') return 12;
-        return 10;
+    // === КОРРЕКТНЫЙ РАСЧЁТ ВНЕШНЕГО ДИАМЕТРА КАБЕЛЯ ===
+    // Формула: диаметр жилы + изоляция (~2-3 мм в зависимости от сечения)
+    function getCableOuterDiameter(sectionMM2) {
+        // Диаметр токопроводящей жилы
+        let coreDiameter = 2 * Math.sqrt(sectionMM2 / Math.PI);
+        // Добавляем изоляцию: для малых сечений ~2мм, для больших ~2.5-3мм
+        let insulation = sectionMM2 <= 6 ? 2.0 : (sectionMM2 <= 25 ? 2.5 : 3.0);
+        return coreDiameter + insulation;
     }
 
-    // === Функции расчёта заполнения ===
-    function getInnerDiameter(diam) { return Math.max(diam - 3.2, diam * 0.84); }
-    function tubeArea(diam) { let r = getInnerDiameter(diam)/2; return Math.PI * r * r; }
-    function cableOuterDiameter(sqmm) { return 2 * Math.sqrt(sqmm / Math.PI) + 1.8; }
-    function cableAreaBySection(sqmm) { let d = cableOuterDiameter(sqmm); return Math.PI * (d/2) * (d/2); }
-    function totalCablesArea(cables) { return cables.reduce((sum, c) => sum + cableAreaBySection(c.section), 0); }
-    function getFillPercent(diam, cables) {
-        let areaTube = tubeArea(diam);
-        if(areaTube <= 0) return 100;
-        return (totalCablesArea(cables) / areaTube) * 100;
-    }
-    function checkFill(diam, cables) {
-        let percent = getFillPercent(diam, cables);
-        let maxFill = diam >= 40 ? 45 : 40;
-        return { ok: percent <= maxFill, percent: percent.toFixed(1), maxFill };
+    // Площадь сечения кабеля по внешнему диаметру
+    function getCableArea(sectionMM2) {
+        let d = getCableOuterDiameter(sectionMM2);
+        return Math.PI * Math.pow(d / 2, 2);
     }
 
-    // === АВТОПОДБОР МИНИМАЛЬНОГО ДИАМЕТРА ===
+    // Внутренний диаметр гофрированной трубы (с учётом стенки ~2-3мм)
+    function getInnerTubeDiameter(tubeDiameterMM) {
+        // Для гофры ПНД/ПВХ внутренний диаметр примерно на 3-4 мм меньше наружного
+        return tubeDiameterMM - 3.5;
+    }
+
+    // Площадь внутреннего сечения трубы
+    function getTubeArea(tubeDiameterMM) {
+        let innerD = getInnerTubeDiameter(tubeDiameterMM);
+        if(innerD <= 0) return 0;
+        return Math.PI * Math.pow(innerD / 2, 2);
+    }
+
+    // Суммарная площадь всех кабелей
+    function getTotalCablesArea(cables) {
+        return cables.reduce((sum, c) => sum + getCableArea(c.section), 0);
+    }
+
+    // Процент заполнения трубы кабелями
+    function getFillPercentage(tubeDiameterMM, cables) {
+        let tubeArea = getTubeArea(tubeDiameterMM);
+        if(tubeArea <= 0) return 100;
+        let cablesArea = getTotalCablesArea(cables);
+        return (cablesArea / tubeArea) * 100;
+    }
+
+    // Проверка соответствия нормам ПУЭ (максимум 40% для 3+ кабелей, 35% для 2 кабелей)
+    function isFillValid(tubeDiameterMM, cables) {
+        let fillPercent = getFillPercentage(tubeDiameterMM, cables);
+        let maxFill = cables.length >= 3 ? 40 : (cables.length === 2 ? 35 : 45);
+        return fillPercent <= maxFill;
+    }
+
+    // Минимальный рекомендуемый диаметр трубы для заданного набора кабелей
     function getMinRecommendedDiameter() {
         if(cablesArray.length === 0) return 16;
-        let requiredArea = totalCablesArea(cablesArray);
-        let maxFill = 0.4;
         for(let d of diameters) {
-            let areaTube = tubeArea(d);
-            if(areaTube * maxFill >= requiredArea) {
+            if(isFillValid(d, cablesArray)) {
                 return d;
             }
         }
@@ -589,12 +574,17 @@
     }
 
     // Автоматическая установка минимального подходящего диаметра
-    function updateToMinDiameter() {
+    function applyMinDiameter() {
         let minDiam = getMinRecommendedDiameter();
         if(currentDiameter < minDiam) {
             currentDiameter = minDiam;
         }
         renderDiameterButtons();
+    }
+
+    function getMaxTerminals(material) {
+        if(material === 'steel') return 12;
+        return 10;
     }
 
     function filterTubeOptions() {
@@ -661,10 +651,10 @@
             if(d === currentDiameter) tile.classList.add('selected');
             if(d === minRecommended && d !== currentDiameter) tile.classList.add('recommended');
             tile.textContent = `${d} mm`;
-            const isValid = (d >= minRecommended);
+            const isValid = isFillValid(d, cablesArray);
             if(!isValid) {
                 tile.classList.add('disabled');
-                tile.title = `⚠️ Для выбранных кабелей требуется диаметр не менее ${minRecommended} мм`;
+                tile.title = `⚠️ Заполнение превышает норму!`;
             }
             tile.addEventListener('click', () => {
                 if(!isValid) return;
@@ -675,11 +665,12 @@
             container.appendChild(tile);
         });
         
+        let fillPercent = getFillPercentage(currentDiameter, cablesArray).toFixed(1);
         let hintText = `✅ Рекомендуемый минимальный диаметр: ${minRecommended} мм`;
         if(currentDiameter > minRecommended) {
-            hintText += ` (выбран ${currentDiameter} мм — допустимо)`;
+            hintText += ` (выбран ${currentDiameter} мм — допустимо, заполнение ${fillPercent}%)`;
         } else if(currentDiameter === minRecommended) {
-            hintText += ` — оптимальный выбор`;
+            hintText += ` — оптимальный выбор (заполнение ${fillPercent}%)`;
         }
         document.getElementById('autoDiamHint').innerHTML = `⚡ ${hintText}`;
         document.getElementById('selectedDiameter').innerHTML = `${currentDiameter} мм`;
@@ -691,10 +682,11 @@
         if(cablesArray.length === 0) { container.innerHTML = '<div style="padding:12px; text-align:center;">Нет кабелей</div>'; hint.style.display = 'none'; return; }
         let html = '';
         cablesArray.forEach((cable, idx) => {
+            let outerDiam = getCableOuterDiameter(cable.section).toFixed(1);
             html += `<div class="cable-item">
                 <span>Сечение:</span>
                 <input type="number" step="0.5" min="0.75" value="${cable.section}" data-cable-idx="${idx}" class="cable-section-input" style="width:90px;">
-                <span>мм²</span>
+                <span>мм² (Øвнеш ≈ ${outerDiam} мм)</span>
                 <button class="remove-cable" data-idx="${idx}">✕</button>
             </div>`;
         });
@@ -706,7 +698,7 @@
             let idx = parseInt(inp.dataset.cableIdx);
             let val = parseFloat(inp.value);
             if(!isNaN(val) && val > 0) cablesArray[idx].section = val;
-            updateToMinDiameter();
+            applyMinDiameter();
             performCalculation();
         }));
         document.querySelectorAll('.remove-cable').forEach(btn => btn.addEventListener('click', (e) => {
@@ -714,7 +706,7 @@
             cablesArray.splice(idx, 1);
             if(cablesArray.length === 0) cablesArray.push({ section: 1.5 });
             renderCablesList();
-            updateToMinDiameter();
+            applyMinDiameter();
             performCalculation();
         }));
     }
@@ -834,7 +826,7 @@
     function addCable() { 
         cablesArray.push({ section: 1.5 }); 
         renderCablesList(); 
-        updateToMinDiameter();
+        applyMinDiameter();
         performCalculation(); 
     }
     
@@ -855,13 +847,14 @@
         document.getElementById('totalPipeMeters').innerHTML = pipeMeters.toFixed(1) + ' м';
         document.getElementById('coilInfo').innerHTML = getCoilInfoRoundUp(pipeMeters, currentDiameter);
         
-        const fill = checkFill(currentDiameter, cablesArray);
-        const minRecommended = getMinRecommendedDiameter();
-        let fillHtml = `${fill.percent}% `;
-        if(fill.ok) {
-            fillHtml += `✓ норма (≤${fill.maxFill}%)`;
+        let fillPercent = getFillPercentage(currentDiameter, cablesArray);
+        let isValid = isFillValid(currentDiameter, cablesArray);
+        let maxFill = cablesArray.length >= 3 ? 40 : (cablesArray.length === 2 ? 35 : 45);
+        let fillHtml = `${fillPercent.toFixed(1)}% `;
+        if(isValid) {
+            fillHtml += `✓ норма (≤${maxFill}%)`;
         } else {
-            fillHtml += `⚠️ ПРЕВЫШЕНИЕ! Рекомендуемый диаметр: ${minRecommended} мм`;
+            fillHtml += `⚠️ ПРЕВЫШЕНИЕ! Рекомендуемый диаметр: ${getMinRecommendedDiameter()} мм`;
         }
         document.getElementById('fillStatus').innerHTML = fillHtml;
 
@@ -885,14 +878,14 @@
         document.getElementById('totalBoxesCount').innerHTML = totalBoxes;
         document.getElementById('boxesDetails').innerHTML = boxesDetail.join(', ') || '—';
         
-        let infoText = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'} | Заполнение: ${fill.percent}% ${fill.ok ? '(норма)' : '(превышение!)'}<br>`;
+        let infoText = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'} | Заполнение: ${fillPercent.toFixed(1)}% ${isValid ? '(норма)' : '(превышение!)'}<br>`;
         infoText += `🔧 Шаг крепления: ${spacing.toFixed(2)} м<br>`;
         infoText += `📎 Коробки: сталь (макс. 12 клемм), пластик АП/ПП (макс. 10)<br>`;
-        infoText += `💡 Совет: система автоматически подбирает минимальный диаметр трубы под ваши кабели.`;
+        infoText += `📐 Внутренний диаметр трубы ${currentDiameter} мм ≈ ${getInnerTubeDiameter(currentDiameter).toFixed(1)} мм`;
         document.getElementById('ruleInfo').innerHTML = infoText;
         
-        if(currentDiameter < minRecommended) {
-            document.getElementById('diamWarning').innerHTML = `⚠️ Внимание! Выбранный диаметр ${currentDiameter} мм недостаточен. Рекомендуется ${minRecommended} мм.`;
+        if(!isValid) {
+            document.getElementById('diamWarning').innerHTML = `⚠️ Внимание! Заполнение трубы составляет ${fillPercent.toFixed(1)}% при норме ${maxFill}%. Рекомендуется диаметр ${getMinRecommendedDiameter()} мм.`;
         } else {
             document.getElementById('diamWarning').innerHTML = '';
         }
@@ -925,7 +918,7 @@
         renderMountSubtypes();
         renderCablesList();
         renderBoxesList();
-        updateToMinDiameter();
+        applyMinDiameter();
         attachEvents();
         performCalculation();
     });
