@@ -126,20 +126,27 @@
             display: flex;
             gap: 16px;
             margin-bottom: 8px;
+            flex-wrap: wrap;
         }
         .traffic-radio {
             background: #F1F5F9;
-            border-radius: 40px;
+            border-radius: 48px;
             padding: 10px 24px;
             font-weight: 600;
             cursor: pointer;
             border: 1px solid #CBD5E1;
             transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .traffic-radio.active {
             background: #DC2626;
             color: white;
             border-color: #DC2626;
+        }
+        .traffic-icon {
+            font-size: 1.2rem;
         }
 
         /* НАГЛЯДНЫЙ ВЫБОР ТИПА КРЕПЕЖА - КРУПНЫЕ КАРТОЧКИ */
@@ -359,9 +366,14 @@
                 <div class="form-group">
                     <label>⚠️ КАТЕГОРИЯ ТРАССЫ</label>
                     <div class="traffic-type" id="trafficTypeGroup">
-                        <div data-traffic="okl" class="traffic-radio active">🔴 ОКЛ (кабельная линия)</div>
-                        <div data-traffic="non_okl" class="traffic-radio">⚪ Не ОКЛ (общего назначения)</div>
+                        <div data-traffic="okl" class="traffic-radio active">
+                            <span class="traffic-icon">🔥</span> ОКЛ (огнестойкая кабельная линия)
+                        </div>
+                        <div data-traffic="non_okl" class="traffic-radio">
+                            <span class="traffic-icon">🧾</span> Кабельная трасса общего назначения
+                        </div>
                     </div>
+                    <div class="small-help">Для ОКЛ доступны трубы: ПНД+антипирены и ПВХ. Крепление — только стальные скобы.</div>
                 </div>
 
                 <div class="form-group">
@@ -419,7 +431,7 @@
 
                 <div class="form-group">
                     <label>📦 РАСПРЕДЕЛИТЕЛЬНЫЕ КОРОБКИ</label>
-                    <div class="small-help" style="margin-bottom: 6px;">👇 Выпадающий список ниже — выбор типа коробки (проходная/ответвительная/концевая) и материала</div>
+                    <div class="small-help" style="margin-bottom: 6px;">👇 Выберите тип корпуса (материал) и количество клемм</div>
                     <div id="boxesContainer" class="box-list"></div>
                     <button type="button" id="addBoxBtn" class="add-box-btn">+ Добавить коробку</button>
                 </div>
@@ -449,7 +461,7 @@
                 <div class="info-panel" id="ruleInfo">
                     ⚙️ Для ОКЛ — трубы ПНД+АП / ПВХ и стальные скобы.<br>
                     📊 Заполнение трубы кабелями — не более 40% (по сумме сечений).<br>
-                    📦 Тип коробки выбирается в выпадающем списке: проходная, ответвительная или концевая.
+                    📦 Распределительные коробки: выбор материала корпуса (сталь, пластик АП, ПП мембрана).
                 </div>
             </div>
         </div>
@@ -465,20 +477,17 @@
     let plasticSubType = "gun";
     let steelSubType = "single";
 
-    // Максимальные сечения для одного кабеля (ориентир, но у нас проверка по сумме площадей)
     const maxCableSections = { 16: 10, 20: 16, 25: 25, 32: 35, 40: 70, 50: 95 };
-    
     const coilLengths = { 16:100, 20:100, 25:50, 32:50, 40:15, 50:15 };
     const packSizes = { 16:100, 20:100, 25:100, 32:50, 40:30, 50:20 };
 
     let cablesArray = [];      // { section: number }
-    let boxesArray = [];       // { typeMaterial: string, terminals: number }  typeMaterial теперь включает тип коробки
+    let boxesArray = [];       // { material: 'steel' | 'plastic_ap' | 'pp_membrane', terminals: number }
 
     // --- Функции расчёта площадей ---
     function getInnerDiameter(diam) { return Math.max(diam - 3.2, diam * 0.84); }
     function tubeArea(diam) { let r = getInnerDiameter(diam)/2; return Math.PI * r * r; }
     function cableOuterDiameter(sqmm) {
-        // условный внешний диаметр кабеля с изоляцией
         let coreD = 2 * Math.sqrt(sqmm / Math.PI);
         return coreD + 1.8;
     }
@@ -631,31 +640,28 @@
         }
         let html = '';
         boxesArray.forEach((box, idx) => {
+            let materialName = box.material === 'steel' ? 'Сталь' : (box.material === 'plastic_ap' ? 'Пластик с антипиренами' : 'ПП с мембраной');
             html += `
                 <div class="box-item">
-                    <select data-box-idx="${idx}" class="box-type-select" style="width:210px;">
-                        <option value="steel_pass" ${box.typeMaterial === 'steel_pass' ? 'selected' : ''}>🔩 Сталь / проходная</option>
-                        <option value="steel_branch" ${box.typeMaterial === 'steel_branch' ? 'selected' : ''}>🔩 Сталь / ответвительная</option>
-                        <option value="steel_end" ${box.typeMaterial === 'steel_end' ? 'selected' : ''}>🔩 Сталь / концевая</option>
-                        <option value="plastic_pass" ${box.typeMaterial === 'plastic_pass' ? 'selected' : ''}>🧴 Пластик АП / проходная</option>
-                        <option value="plastic_branch" ${box.typeMaterial === 'plastic_branch' ? 'selected' : ''}>🧴 Пластик АП / ответвительная</option>
-                        <option value="plastic_end" ${box.typeMaterial === 'plastic_end' ? 'selected' : ''}>🧴 Пластик АП / концевая</option>
-                        <option value="pp_pass" ${box.typeMaterial === 'pp_pass' ? 'selected' : ''}>🧪 ПП мембрана / проходная</option>
-                        <option value="pp_branch" ${box.typeMaterial === 'pp_branch' ? 'selected' : ''}>🧪 ПП мембрана / ответвительная</option>
-                        <option value="pp_end" ${box.typeMaterial === 'pp_end' ? 'selected' : ''}>🧪 ПП мембрана / концевая</option>
+                    <select data-box-idx="${idx}" class="box-material-select" style="width:210px;">
+                        <option value="steel" ${box.material === 'steel' ? 'selected' : ''}>🔩 Сталь (распределительная)</option>
+                        <option value="plastic_ap" ${box.material === 'plastic_ap' ? 'selected' : ''}>🧴 Пластик с антипиренами (распред.)</option>
+                        <option value="pp_membrane" ${box.material === 'pp_membrane' ? 'selected' : ''}>🧪 ПП с мембраной (распред.)</option>
                     </select>
                     <span>Клемм:</span>
                     <input type="number" min="1" max="10" value="${box.terminals}" data-box-idx="${idx}" class="box-terminals-input" style="width:70px;">
                     <button class="remove-box" data-idx="${idx}">✕</button>
+                    <span style="font-size:0.7rem; color:#475569;">${materialName}</span>
                 </div>
             `;
         });
         container.innerHTML = html;
-        document.querySelectorAll('.box-type-select').forEach(sel => {
+        document.querySelectorAll('.box-material-select').forEach(sel => {
             sel.addEventListener('change', (e) => {
                 let idx = parseInt(sel.getAttribute('data-box-idx'));
                 if(!isNaN(idx) && boxesArray[idx]) {
-                    boxesArray[idx].typeMaterial = sel.value;
+                    boxesArray[idx].material = sel.value;
+                    renderBoxesList();
                     performCalculation();
                 }
             });
@@ -667,6 +673,7 @@
                     let val = parseInt(inp.value);
                     if(isNaN(val)) val = 1;
                     boxesArray[idx].terminals = Math.min(10, Math.max(1, val));
+                    renderBoxesList();
                     performCalculation();
                 }
             });
@@ -777,21 +784,21 @@
         let totalBoxes = boxesArray.length;
         let totalTerminals = boxesArray.reduce((sum, b) => sum + b.terminals, 0);
         let boxesDetail = boxesArray.map(b => {
-            let typeMap = { steel_pass:'Сталь/проходная', steel_branch:'Сталь/ответв.', steel_end:'Сталь/конц.', plastic_pass:'ПластАП/прох.', plastic_branch:'ПластАП/ответв.', plastic_end:'ПластАП/конц.', pp_pass:'ПП/прох.', pp_branch:'ПП/ответв.', pp_end:'ПП/конц.' };
-            return `${typeMap[b.typeMaterial] || b.typeMaterial} (${b.terminals} кл)`;
+            let matName = b.material === 'steel' ? 'Сталь' : (b.material === 'plastic_ap' ? 'Пластик АП' : 'ПП мембрана');
+            return `${matName} (${b.terminals} кл)`;
         }).join(', ');
         document.getElementById('totalBoxesCount').innerHTML = totalBoxes;
         document.getElementById('totalTerminalsSum').innerHTML = totalTerminals;
         document.getElementById('boxesDetails').innerHTML = boxesDetail || '—';
 
-        let infoText = `🔹 Категория: ${trafficType === 'okl' ? 'ОКЛ' : 'Не ОКЛ'}. Труба Ø${currentDiameter} мм, рядов: ${rows}<br>`;
+        let infoText = `🔹 Категория: ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'}. Труба Ø${currentDiameter} мм, рядов: ${rows}<br>`;
         infoText += `📦 Заполнение: ${fill.percent}% ${fill.ok ? '(норма)' : '(превышение!)'}<br>`;
         infoText += `🔧 Крепёж: ${mountTypeStr}, шаг ${spacing.toFixed(2)} м, упаковка ${packSizes[currentDiameter]} шт.<br>`;
-        infoText += `📎 Коробки: тип и материал выбираются в выпадающем списке (проходная/ответвительная/концевая).`;
+        infoText += `📎 Распределительные коробки: выбор материала корпуса (сталь, пластик АП, ПП мембрана).`;
         document.getElementById('ruleInfo').innerHTML = infoText;
 
         currentSpecData = {
-            traffic: trafficType === 'okl' ? 'ОКЛ' : 'Не ОКЛ',
+            traffic: trafficType === 'okl' ? 'ОКЛ (огнестойкая кабельная линия)' : 'Кабельная трасса общего назначения',
             tubeType: document.querySelector('#tubeType option:checked')?.textContent || tubeType,
             diameter: currentDiameter,
             cables: cablesArray.map(c => c.section),
@@ -800,7 +807,7 @@
             totalPipe: pipeMeters.toFixed(1),
             coils: getCoilInfoRoundUp(pipeMeters, currentDiameter),
             mountPieces, mountPack: getPackInfoRoundUp(mountPieces, currentDiameter), mountType: mountTypeStr,
-            boxes: boxesArray.map(b => ({ typeMaterial: b.typeMaterial, terminals: b.terminals })),
+            boxes: boxesArray.map(b => ({ material: b.material, terminals: b.terminals })),
             totalBoxes, totalTerminals
         };
     }
@@ -812,8 +819,11 @@
         content += `Кабели (сечения, мм²): ${d.cables.join(', ')}\nЗаполнение: ${d.fillPercent}% ${d.fillOk ? '(норма)' : '(превышение!)'}\n`;
         content += `Длина трассы с рядами: ${d.totalPipe} м\nБухты: ${d.coils}\n`;
         content += `Крепёж: ${d.mountType}, ${d.mountPieces} шт (${d.mountPack})\n`;
-        content += `Коробки: всего ${d.totalBoxes}, клемм ${d.totalTerminals}\n`;
-        d.boxes.forEach((b,i) => { content += `  ${i+1}. ${b.typeMaterial} (${b.terminals} клемм)\n`; });
+        content += `Распределительные коробки: всего ${d.totalBoxes}, клемм ${d.totalTerminals}\n`;
+        d.boxes.forEach((b,i) => { 
+            let matName = b.material === 'steel' ? 'Сталь' : (b.material === 'plastic_ap' ? 'Пластик АП' : 'ПП мембрана');
+            content += `  ${i+1}. ${matName} (${b.terminals} клемм)\n`; 
+        });
         const blob = new Blob([content], {type: 'text/plain'});
         let a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -823,7 +833,7 @@
     }
 
     function addCable() { cablesArray.push({ section: 6 }); renderCablesList(); performCalculation(); }
-    function addBox() { boxesArray.push({ typeMaterial: 'steel_pass', terminals: 4 }); renderBoxesList(); performCalculation(); }
+    function addBox() { boxesArray.push({ material: 'steel', terminals: 4 }); renderBoxesList(); performCalculation(); }
 
     function attachEvents() {
         document.getElementById('calcBtn').onclick = () => performCalculation();
@@ -856,7 +866,7 @@
         renderMountSelector();
         renderMountSubtypes();
         cablesArray = [{ section: 8 }, { section: 4 }];
-        boxesArray = [{ typeMaterial: 'steel_pass', terminals: 4 }];
+        boxesArray = [{ material: 'steel', terminals: 4 }];
         renderCablesList();
         renderBoxesList();
         attachEvents();
