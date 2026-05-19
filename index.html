@@ -149,7 +149,6 @@
             font-size: 1.2rem;
         }
 
-        /* НАГЛЯДНЫЙ ВЫБОР ТИПА КРЕПЕЖА - КРУПНЫЕ КАРТОЧКИ */
         .mount-selector {
             display: flex;
             gap: 20px;
@@ -373,7 +372,6 @@
                             <span class="traffic-icon">🧾</span> Кабельная трасса общего назначения
                         </div>
                     </div>
-                    <div class="small-help">Для ОКЛ доступны трубы: ПНД+антипирены и ПВХ. Крепление — только стальные скобы.</div>
                 </div>
 
                 <div class="form-group">
@@ -393,7 +391,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>⚡ КАБЕЛИ В ТРУБЕ (суммарное заполнение до 40%)</label>
+                    <label>⚡ КАБЕЛИ В ТРУБЕ</label>
                     <div id="cablesContainer" class="cable-list"></div>
                     <button type="button" id="addCableBtn" class="add-cable-btn">+ Добавить кабель</button>
                 </div>
@@ -431,14 +429,13 @@
 
                 <div class="form-group">
                     <label>📦 РАСПРЕДЕЛИТЕЛЬНЫЕ КОРОБКИ</label>
-                    <div class="small-help" style="margin-bottom: 6px;">👇 Выберите тип корпуса (материал) и количество клемм</div>
                     <div id="boxesContainer" class="box-list"></div>
                     <button type="button" id="addBoxBtn" class="add-box-btn">+ Добавить коробку</button>
                 </div>
 
                 <div class="button-group">
                     <button id="calcBtn">⟳ РАССЧИТАТЬ</button>
-                    <button id="downloadBtn" class="btn-secondary">📄 СКАЧАТЬ СПЕЦИФИКАЦИЮ</button>
+                    <button id="downloadBtn" class="btn-secondary">📄 СКАЧАТЬ СПЕЦИФИКАЦИЮ (CSV)</button>
                 </div>
             </div>
 
@@ -458,18 +455,13 @@
                     <div class="result-item"><span>⚡ Суммарно клемм:</span><span id="totalTerminalsSum">0</span></div>
                     <div class="result-item"><span>📋 Детали коробок:</span><span id="boxesDetails" style="font-size:0.7rem;">—</span></div>
                 </div>
-                <div class="info-panel" id="ruleInfo">
-                    ⚙️ Для ОКЛ — трубы ПНД+АП / ПВХ и стальные скобы.<br>
-                    📊 Заполнение трубы кабелями — не более 40% (по сумме сечений).<br>
-                    📦 Распределительные коробки: выбор материала корпуса (сталь, пластик АП, ПП мембрана).
-                </div>
+                <div class="info-panel" id="ruleInfo"></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // ----- ДАННЫЕ -----
     const diameters = [16, 20, 25, 32, 40, 50];
     let currentDiameter = 25;
     let trafficType = "okl";
@@ -481,33 +473,23 @@
     const coilLengths = { 16:100, 20:100, 25:50, 32:50, 40:15, 50:15 };
     const packSizes = { 16:100, 20:100, 25:100, 32:50, 40:30, 50:20 };
 
-    let cablesArray = [];      // { section: number }
-    let boxesArray = [];       // { material: 'steel' | 'plastic_ap' | 'pp_membrane', terminals: number }
+    let cablesArray = [{ section: 8 }, { section: 4 }];
+    let boxesArray = [{ material: 'steel', terminals: 4 }];
 
-    // --- Функции расчёта площадей ---
     function getInnerDiameter(diam) { return Math.max(diam - 3.2, diam * 0.84); }
     function tubeArea(diam) { let r = getInnerDiameter(diam)/2; return Math.PI * r * r; }
-    function cableOuterDiameter(sqmm) {
-        let coreD = 2 * Math.sqrt(sqmm / Math.PI);
-        return coreD + 1.8;
-    }
-    function cableAreaBySection(sqmm) {
-        let d = cableOuterDiameter(sqmm);
-        return Math.PI * (d/2) * (d/2);
-    }
-    function totalCablesArea(cables) {
-        return cables.reduce((sum, c) => sum + cableAreaBySection(c.section), 0);
-    }
+    function cableOuterDiameter(sqmm) { return 2 * Math.sqrt(sqmm / Math.PI) + 1.8; }
+    function cableAreaBySection(sqmm) { let d = cableOuterDiameter(sqmm); return Math.PI * (d/2) * (d/2); }
+    function totalCablesArea(cables) { return cables.reduce((sum, c) => sum + cableAreaBySection(c.section), 0); }
     function checkFillByCables(diam, cables) {
         let areaTube = tubeArea(diam);
         let areaCables = totalCablesArea(cables);
-        if(areaTube <= 0) return { ok: false, percent: 100, areaCables, areaTube };
+        if(areaTube <= 0) return { ok: false, percent: 100 };
         let percent = (areaCables / areaTube) * 100;
         let maxFill = diam >= 40 ? 45 : 40;
-        return { ok: percent <= maxFill, percent: percent.toFixed(1), maxFill, areaCables, areaTube };
+        return { ok: percent <= maxFill, percent: percent.toFixed(1), maxFill };
     }
 
-    // --- Фильтр труб по ОКЛ ---
     function filterTubeOptions() {
         const tubeSelect = document.getElementById('tubeType');
         const isOkl = (trafficType === "okl");
@@ -558,23 +540,10 @@
         return Math.max(rows, (mountsLine + extraBends) * rows);
     }
 
-    function totalPipeWithRows(straight, bends, rows) {
-        return (straight + bends * 0.5) * rows;
-    }
+    function totalPipeWithRows(straight, bends, rows) { return (straight + bends * 0.5) * rows; }
+    function getCoilInfoRoundUp(needMeters, diam) { let coils = Math.ceil(needMeters / coilLengths[diam]); return `${coils} бухт(а) по ${coilLengths[diam]}м`; }
+    function getPackInfoRoundUp(pieces, diam) { let packs = Math.ceil(pieces / packSizes[diam]); return `${packs} уп. (по ${packSizes[diam]}шт)`; }
 
-    function getCoilInfoRoundUp(needMeters, diam) {
-        let coilLen = coilLengths[diam];
-        let coils = Math.ceil(needMeters / coilLen);
-        return `${coils} бухт(а) по ${coilLen}м`;
-    }
-
-    function getPackInfoRoundUp(pieces, diam) {
-        let packSize = packSizes[diam];
-        let packs = Math.ceil(pieces / packSize);
-        return `${packs} уп. (по ${packSize}шт)`;
-    }
-
-    // --- UI рендеры ---
     function renderDiameterButtons() {
         const container = document.getElementById('diameterGrid');
         container.innerHTML = '';
@@ -587,105 +556,77 @@
                 document.querySelectorAll('.diam-tile').forEach(el => el.classList.remove('selected'));
                 tile.classList.add('selected');
                 currentDiameter = d;
-                document.getElementById('maxSectionNote').innerHTML = `📌 Макс. сечение одного кабеля: ~${maxCableSections[d]} мм² (по заполнению)`;
+                document.getElementById('maxSectionNote').innerHTML = `📌 Макс. сечение одного кабеля: ~${maxCableSections[d]} мм²`;
                 performCalculation();
             });
             container.appendChild(tile);
         });
-        document.getElementById('maxSectionNote').innerHTML = `📌 Макс. сечение одного кабеля: ~${maxCableSections[currentDiameter]} мм² (по заполнению)`;
+        document.getElementById('maxSectionNote').innerHTML = `📌 Макс. сечение одного кабеля: ~${maxCableSections[currentDiameter]} мм²`;
     }
 
     function renderCablesList() {
         const container = document.getElementById('cablesContainer');
-        if(cablesArray.length === 0) {
-            container.innerHTML = '<div style="color:#64748B; text-align:center; padding:12px;">Нет добавленных кабелей</div>';
-            return;
-        }
+        if(cablesArray.length === 0) { container.innerHTML = '<div style="padding:12px; text-align:center;">Нет кабелей</div>'; return; }
         let html = '';
         cablesArray.forEach((cable, idx) => {
-            html += `
-                <div class="cable-item">
-                    <span>Сечение:</span>
-                    <input type="number" step="0.5" min="0.75" value="${cable.section}" data-cable-idx="${idx}" class="cable-section-input" style="width:90px;">
-                    <span>мм²</span>
-                    <button class="remove-cable" data-idx="${idx}">✕</button>
-                </div>
-            `;
+            html += `<div class="cable-item">
+                <span>Сечение:</span>
+                <input type="number" step="0.5" min="0.75" value="${cable.section}" data-cable-idx="${idx}" class="cable-section-input" style="width:90px;">
+                <span>мм²</span>
+                <button class="remove-cable" data-idx="${idx}">✕</button>
+            </div>`;
         });
         container.innerHTML = html;
-        document.querySelectorAll('.cable-section-input').forEach(inp => {
-            inp.addEventListener('change', (e) => {
-                let idx = parseInt(inp.getAttribute('data-cable-idx'));
-                let val = parseFloat(inp.value);
-                if(!isNaN(val) && val > 0) cablesArray[idx].section = val;
-                else cablesArray[idx].section = 1.5;
-                performCalculation();
-            });
-        });
-        document.querySelectorAll('.remove-cable').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                let idx = parseInt(btn.getAttribute('data-idx'));
-                cablesArray.splice(idx, 1);
-                renderCablesList();
-                performCalculation();
-            });
-        });
+        document.querySelectorAll('.cable-section-input').forEach(inp => inp.addEventListener('change', (e) => {
+            let idx = parseInt(inp.dataset.cableIdx);
+            let val = parseFloat(inp.value);
+            if(!isNaN(val) && val > 0) cablesArray[idx].section = val;
+            performCalculation();
+        }));
+        document.querySelectorAll('.remove-cable').forEach(btn => btn.addEventListener('click', (e) => {
+            let idx = parseInt(btn.dataset.idx);
+            cablesArray.splice(idx, 1);
+            renderCablesList();
+            performCalculation();
+        }));
     }
 
     function renderBoxesList() {
         const container = document.getElementById('boxesContainer');
-        if(boxesArray.length === 0) {
-            container.innerHTML = '<div style="color:#64748B; text-align:center; padding:12px;">Нет добавленных коробок</div>';
-            return;
-        }
+        if(boxesArray.length === 0) { container.innerHTML = '<div style="padding:12px; text-align:center;">Нет коробок</div>'; return; }
         let html = '';
         boxesArray.forEach((box, idx) => {
-            let materialName = box.material === 'steel' ? 'Сталь' : (box.material === 'plastic_ap' ? 'Пластик с антипиренами' : 'ПП с мембраной');
-            html += `
-                <div class="box-item">
-                    <select data-box-idx="${idx}" class="box-material-select" style="width:210px;">
-                        <option value="steel" ${box.material === 'steel' ? 'selected' : ''}>🔩 Сталь (распределительная)</option>
-                        <option value="plastic_ap" ${box.material === 'plastic_ap' ? 'selected' : ''}>🧴 Пластик с антипиренами (распред.)</option>
-                        <option value="pp_membrane" ${box.material === 'pp_membrane' ? 'selected' : ''}>🧪 ПП с мембраной (распред.)</option>
-                    </select>
-                    <span>Клемм:</span>
-                    <input type="number" min="1" max="10" value="${box.terminals}" data-box-idx="${idx}" class="box-terminals-input" style="width:70px;">
-                    <button class="remove-box" data-idx="${idx}">✕</button>
-                    <span style="font-size:0.7rem; color:#475569;">${materialName}</span>
-                </div>
-            `;
+            html += `<div class="box-item">
+                <select data-box-idx="${idx}" class="box-material-select" style="width:210px;">
+                    <option value="steel" ${box.material === 'steel' ? 'selected' : ''}>🔩 Сталь</option>
+                    <option value="plastic_ap" ${box.material === 'plastic_ap' ? 'selected' : ''}>🧴 Пластик с антипиренами</option>
+                    <option value="pp_membrane" ${box.material === 'pp_membrane' ? 'selected' : ''}>🧪 ПП с мембраной</option>
+                </select>
+                <span>Клемм:</span>
+                <input type="number" min="1" max="10" value="${box.terminals}" data-box-idx="${idx}" class="box-terminals-input" style="width:70px;">
+                <button class="remove-box" data-idx="${idx}">✕</button>
+            </div>`;
         });
         container.innerHTML = html;
-        document.querySelectorAll('.box-material-select').forEach(sel => {
-            sel.addEventListener('change', (e) => {
-                let idx = parseInt(sel.getAttribute('data-box-idx'));
-                if(!isNaN(idx) && boxesArray[idx]) {
-                    boxesArray[idx].material = sel.value;
-                    renderBoxesList();
-                    performCalculation();
-                }
-            });
-        });
-        document.querySelectorAll('.box-terminals-input').forEach(inp => {
-            inp.addEventListener('change', (e) => {
-                let idx = parseInt(inp.getAttribute('data-box-idx'));
-                if(!isNaN(idx) && boxesArray[idx]) {
-                    let val = parseInt(inp.value);
-                    if(isNaN(val)) val = 1;
-                    boxesArray[idx].terminals = Math.min(10, Math.max(1, val));
-                    renderBoxesList();
-                    performCalculation();
-                }
-            });
-        });
-        document.querySelectorAll('.remove-box').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                let idx = parseInt(btn.getAttribute('data-idx'));
-                boxesArray.splice(idx, 1);
-                renderBoxesList();
-                performCalculation();
-            });
-        });
+        document.querySelectorAll('.box-material-select').forEach(sel => sel.addEventListener('change', (e) => {
+            let idx = parseInt(sel.dataset.boxIdx);
+            if(!isNaN(idx) && boxesArray[idx]) boxesArray[idx].material = sel.value;
+            performCalculation();
+        }));
+        document.querySelectorAll('.box-terminals-input').forEach(inp => inp.addEventListener('change', (e) => {
+            let idx = parseInt(inp.dataset.boxIdx);
+            if(!isNaN(idx) && boxesArray[idx]) {
+                let val = parseInt(inp.value);
+                boxesArray[idx].terminals = Math.min(10, Math.max(1, isNaN(val) ? 1 : val));
+            }
+            performCalculation();
+        }));
+        document.querySelectorAll('.remove-box').forEach(btn => btn.addEventListener('click', (e) => {
+            let idx = parseInt(btn.dataset.idx);
+            boxesArray.splice(idx, 1);
+            renderBoxesList();
+            performCalculation();
+        }));
     }
 
     function renderMountSelector() {
@@ -702,59 +643,35 @@
                 <div class="mount-icon">🧩</div>
                 <div class="mount-title">Пластиковые клипсы</div>
                 <div class="mount-desc">Под пистолет / под отвертку</div>
-                ${isOkl ? '<div class="warning-badge">Недоступно для ОКЛ</div>' : ''}
+                ${isOkl ? '<div class="warning-badge">Недоступно</div>' : ''}
             </div>
         `;
-        document.querySelectorAll('.mount-card').forEach(card => {
-            card.addEventListener('click', () => {
-                let mount = card.getAttribute('data-mount');
-                if(trafficType === "okl" && mount === 'plastic') return;
-                mountCategory = mount;
-                renderMountSelector();
-                renderMountSubtypes();
-                performCalculation();
-            });
-        });
+        document.querySelectorAll('.mount-card').forEach(card => card.addEventListener('click', () => {
+            let mount = card.dataset.mount;
+            if(trafficType === "okl" && mount === 'plastic') return;
+            mountCategory = mount;
+            renderMountSelector();
+            renderMountSubtypes();
+            performCalculation();
+        }));
     }
 
     function renderMountSubtypes() {
         const container = document.getElementById('mountSubtypeArea');
         if(mountCategory === 'steel') {
-            container.innerHTML = `
-                <div style="background:#FFF5F5; border-radius: 20px; padding: 16px; margin-top: 12px;">
-                    <div class="flex-row">
-                        <div data-steel="single" class="sub-option ${steelSubType === 'single' ? 'active' : ''}">🔹 Однолапковая</div>
-                        <div data-steel="double" class="sub-option ${steelSubType === 'double' ? 'active' : ''}">🔸 Двухлапковая</div>
-                    </div>
-                </div>
-            `;
-            document.querySelectorAll('[data-steel]').forEach(el => {
-                el.addEventListener('click', () => {
-                    steelSubType = el.getAttribute('data-steel');
-                    renderMountSubtypes();
-                    performCalculation();
-                });
-            });
+            container.innerHTML = `<div style="margin-top:12px;"><div class="flex-row">
+                <div data-steel="single" class="sub-option ${steelSubType === 'single' ? 'active' : ''}">🔹 Однолапковая</div>
+                <div data-steel="double" class="sub-option ${steelSubType === 'double' ? 'active' : ''}">🔸 Двухлапковая</div>
+            </div></div>`;
+            document.querySelectorAll('[data-steel]').forEach(el => el.addEventListener('click', () => { steelSubType = el.dataset.steel; renderMountSubtypes(); performCalculation(); }));
         } else {
-            container.innerHTML = `
-                <div style="background:#EFF6FF; border-radius: 20px; padding: 16px; margin-top: 12px;">
-                    <div class="flex-row">
-                        <div data-plast="gun" class="sub-option ${plasticSubType === 'gun' ? 'active' : ''}">🔫 Под пистолет</div>
-                        <div data-plast="screw" class="sub-option ${plasticSubType === 'screw' ? 'active' : ''}">🪛 Под отвертку</div>
-                    </div>
-                </div>
-            `;
-            document.querySelectorAll('[data-plast]').forEach(el => {
-                el.addEventListener('click', () => {
-                    plasticSubType = el.getAttribute('data-plast');
-                    renderMountSubtypes();
-                    performCalculation();
-                });
-            });
+            container.innerHTML = `<div style="margin-top:12px;"><div class="flex-row">
+                <div data-plast="gun" class="sub-option ${plasticSubType === 'gun' ? 'active' : ''}">🔫 Под пистолет</div>
+                <div data-plast="screw" class="sub-option ${plasticSubType === 'screw' ? 'active' : ''}">🪛 Под отвертку</div>
+            </div></div>`;
+            document.querySelectorAll('[data-plast]').forEach(el => el.addEventListener('click', () => { plasticSubType = el.dataset.plast; renderMountSubtypes(); performCalculation(); }));
         }
     }
-
-    let currentSpecData = {};
 
     function performCalculation() {
         const tubeType = document.getElementById('tubeType').value;
@@ -769,8 +686,7 @@
         document.getElementById('coilInfo').innerHTML = getCoilInfoRoundUp(pipeMeters, currentDiameter);
 
         const fill = checkFillByCables(currentDiameter, cablesArray);
-        let fillHtml = `${fill.percent}% ` + (fill.ok ? `✓ норма (≤${fill.maxFill}%)` : `⚠️ ПРЕВЫШЕНИЕ! Увеличьте диаметр трубы`);
-        document.getElementById('fillStatus').innerHTML = fillHtml;
+        document.getElementById('fillStatus').innerHTML = `${fill.percent}% ` + (fill.ok ? `✓ норма` : `⚠️ ПРЕВЫШЕНИЕ!`);
 
         let spacing = spacingMode === 'auto' ? getBaseSpacing(currentDiameter, tubeType, mountCategory === 'steel') : parseFloat(spacingMode);
         spacing = Math.min(1.3, Math.max(0.55, spacing));
@@ -783,80 +699,87 @@
 
         let totalBoxes = boxesArray.length;
         let totalTerminals = boxesArray.reduce((sum, b) => sum + b.terminals, 0);
-        let boxesDetail = boxesArray.map(b => {
-            let matName = b.material === 'steel' ? 'Сталь' : (b.material === 'plastic_ap' ? 'Пластик АП' : 'ПП мембрана');
-            return `${matName} (${b.terminals} кл)`;
-        }).join(', ');
+        let boxesDetail = boxesArray.map(b => { let m = b.material === 'steel' ? 'Сталь' : (b.material === 'plastic_ap' ? 'Пластик АП' : 'ПП мембрана'); return `${m} (${b.terminals} кл)`; }).join(', ');
         document.getElementById('totalBoxesCount').innerHTML = totalBoxes;
         document.getElementById('totalTerminalsSum').innerHTML = totalTerminals;
         document.getElementById('boxesDetails').innerHTML = boxesDetail || '—';
-
-        let infoText = `🔹 Категория: ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'}. Труба Ø${currentDiameter} мм, рядов: ${rows}<br>`;
-        infoText += `📦 Заполнение: ${fill.percent}% ${fill.ok ? '(норма)' : '(превышение!)'}<br>`;
-        infoText += `🔧 Крепёж: ${mountTypeStr}, шаг ${spacing.toFixed(2)} м, упаковка ${packSizes[currentDiameter]} шт.<br>`;
-        infoText += `📎 Распределительные коробки: выбор материала корпуса (сталь, пластик АП, ПП мембрана).`;
-        document.getElementById('ruleInfo').innerHTML = infoText;
-
-        currentSpecData = {
-            traffic: trafficType === 'okl' ? 'ОКЛ (огнестойкая кабельная линия)' : 'Кабельная трасса общего назначения',
-            tubeType: document.querySelector('#tubeType option:checked')?.textContent || tubeType,
-            diameter: currentDiameter,
-            cables: cablesArray.map(c => c.section),
-            fillPercent: fill.percent,
-            fillOk: fill.ok,
-            totalPipe: pipeMeters.toFixed(1),
-            coils: getCoilInfoRoundUp(pipeMeters, currentDiameter),
-            mountPieces, mountPack: getPackInfoRoundUp(mountPieces, currentDiameter), mountType: mountTypeStr,
-            boxes: boxesArray.map(b => ({ material: b.material, terminals: b.terminals })),
-            totalBoxes, totalTerminals
-        };
+        document.getElementById('ruleInfo').innerHTML = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'} | Труба Ø${currentDiameter} мм, рядов: ${rows}<br>📦 Заполнение: ${fill.percent}%<br>🔧 ${mountTypeStr}, шаг ${spacing.toFixed(2)} м`;
     }
 
-    function downloadSpecification() {
-        let d = currentSpecData;
-        let content = `СПЕЦИФИКАЦИЯ КАБЕЛЬНОЙ ТРАССЫ\nСИСТЕМА КМ\n\n`;
-        content += `Категория: ${d.traffic}\nТруба: ${d.tubeType}, Ø${d.diameter} мм\n`;
-        content += `Кабели (сечения, мм²): ${d.cables.join(', ')}\nЗаполнение: ${d.fillPercent}% ${d.fillOk ? '(норма)' : '(превышение!)'}\n`;
-        content += `Длина трассы с рядами: ${d.totalPipe} м\nБухты: ${d.coils}\n`;
-        content += `Крепёж: ${d.mountType}, ${d.mountPieces} шт (${d.mountPack})\n`;
-        content += `Распределительные коробки: всего ${d.totalBoxes}, клемм ${d.totalTerminals}\n`;
-        d.boxes.forEach((b,i) => { 
-            let matName = b.material === 'steel' ? 'Сталь' : (b.material === 'plastic_ap' ? 'Пластик АП' : 'ПП мембрана');
-            content += `  ${i+1}. ${matName} (${b.terminals} клемм)\n`; 
-        });
-        const blob = new Blob([content], {type: 'text/plain'});
-        let a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `spec_${new Date().toISOString().slice(0,19)}.txt`;
-        a.click();
-        URL.revokeObjectURL(a.href);
+    function downloadCSV() {
+        const tubeTypeText = document.querySelector('#tubeType option:checked')?.textContent || '';
+        const trafficText = trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения';
+        const fill = checkFillByCables(currentDiameter, cablesArray);
+        const straight = parseFloat(document.getElementById('straightLength').value) || 0;
+        const bends = parseInt(document.getElementById('bendsCount').value) || 0;
+        const rows = parseInt(document.getElementById('rowsCount').value) || 1;
+        const pipeMeters = totalPipeWithRows(straight, bends, rows);
+        const mountPieces = parseInt(document.getElementById('mountPcs').innerText) || 0;
+        const mountPack = document.getElementById('mountPackInfo').innerText;
+        const mountTypeStr = document.getElementById('mountTypeLabel').innerText;
+        
+        let rowsData = [
+            ['СПЕЦИФИКАЦИЯ КАБЕЛЬНОЙ ТРАССЫ', 'СИСТЕМА КМ'],
+            ['Дата', new Date().toLocaleString('ru-RU')],
+            ['Категория трассы', trafficText],
+            ['Тип трубы', tubeTypeText],
+            ['Диаметр трубы (мм)', currentDiameter],
+            ['Сечения кабелей (мм²)', cablesArray.map(c => c.section).join(', ')],
+            ['Заполнение трубы', `${fill.percent}% ${fill.ok ? '(норма)' : '(превышение)'}`],
+            ['Длина прямых участков (м)', straight],
+            ['Кол-во изгибов', bends],
+            ['Кол-во рядов', rows],
+            ['Общая длина трубы (м)', pipeMeters.toFixed(1)],
+            ['Запас на изгибы (м)', (bends * 0.5 * rows).toFixed(1)],
+            ['Требуется бухт', getCoilInfoRoundUp(pipeMeters, currentDiameter)],
+            ['Тип крепежа', mountTypeStr],
+            ['Крепёж (штук)', mountPieces],
+            ['Упаковки крепежа', mountPack],
+            ['Всего распред. коробок', boxesArray.length],
+            ['Суммарно клемм', boxesArray.reduce((s,b)=>s+b.terminals,0)],
+            ['Детали коробок (материал/клеммы)', boxesArray.map(b => `${b.material === 'steel' ? 'Сталь' : (b.material === 'plastic_ap' ? 'Пластик АП' : 'ПП мембрана')} (${b.terminals})`).join('; ')],
+            ['', ''],
+            ['© СИСТЕМА КМ — Конфигуратор кабельной трассы', '']
+        ];
+        
+        let csvContent = rowsData.map(row => row.map(cell => {
+            if(typeof cell === 'string' && (cell.includes(',') || cell.includes('"'))) return `"${cell.replace(/"/g, '""')}"`;
+            return cell;
+        }).join(';')).join('\n');
+        
+        const blob = new Blob(["\uFEFF" + csvContent], {type: 'text/csv;charset=utf-8;'});
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute('download', `specifikacia_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 
     function addCable() { cablesArray.push({ section: 6 }); renderCablesList(); performCalculation(); }
     function addBox() { boxesArray.push({ material: 'steel', terminals: 4 }); renderBoxesList(); performCalculation(); }
 
     function attachEvents() {
-        document.getElementById('calcBtn').onclick = () => performCalculation();
-        document.getElementById('downloadBtn').onclick = downloadSpecification;
+        document.getElementById('calcBtn').onclick = performCalculation;
+        document.getElementById('downloadBtn').onclick = downloadCSV;
         document.getElementById('addCableBtn').onclick = addCable;
         document.getElementById('addBoxBtn').onclick = addBox;
-        document.getElementById('tubeType').onchange = () => performCalculation();
-        document.getElementById('straightLength').oninput = () => performCalculation();
-        document.getElementById('bendsCount').oninput = () => performCalculation();
-        document.getElementById('rowsCount').oninput = () => performCalculation();
-        document.getElementById('mountSpacing').onchange = () => performCalculation();
-        const trafficRadios = document.querySelectorAll('.traffic-radio');
-        trafficRadios.forEach(r => {
-            r.onclick = () => {
-                trafficRadios.forEach(rd => rd.classList.remove('active'));
-                r.classList.add('active');
-                trafficType = r.getAttribute('data-traffic');
-                filterTubeOptions();
-                if(trafficType === "okl") mountCategory = "steel";
-                renderMountSelector();
-                renderMountSubtypes();
-                performCalculation();
-            };
+        document.getElementById('tubeType').onchange = performCalculation;
+        document.getElementById('straightLength').oninput = performCalculation;
+        document.getElementById('bendsCount').oninput = performCalculation;
+        document.getElementById('rowsCount').oninput = performCalculation;
+        document.getElementById('mountSpacing').onchange = performCalculation;
+        document.querySelectorAll('.traffic-radio').forEach(r => r.onclick = () => {
+            document.querySelectorAll('.traffic-radio').forEach(rd => rd.classList.remove('active'));
+            r.classList.add('active');
+            trafficType = r.getAttribute('data-traffic');
+            filterTubeOptions();
+            if(trafficType === "okl") mountCategory = "steel";
+            renderMountSelector();
+            renderMountSubtypes();
+            performCalculation();
         });
     }
 
@@ -865,8 +788,6 @@
         filterTubeOptions();
         renderMountSelector();
         renderMountSubtypes();
-        cablesArray = [{ section: 8 }, { section: 4 }];
-        boxesArray = [{ material: 'steel', terminals: 4 }];
         renderCablesList();
         renderBoxesList();
         attachEvents();
