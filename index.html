@@ -427,25 +427,32 @@
 
     let boxesArray = [];
 
-    // --- Функция фильтрации трубы по категории (ОКЛ: только ПНД+антипирены и ПВХ) ---
+    // --- КЛЮЧЕВАЯ ФУНКЦИЯ: фильтрация труб по категории (ОКЛ: только pnd_antipyr и pvc) ---
     function filterTubeOptions() {
         const tubeSelect = document.getElementById('tubeType');
         const isOkl = (trafficType === "okl");
         const options = tubeSelect.options;
+        
+        console.log("filterTubeOptions called, isOkl =", isOkl); // для отладки
+        
         for(let i = 0; i < options.length; i++) {
             const val = options[i].value;
             if(isOkl) {
-                // Для ОКЛ доступны только pnd_antipyr и pvc
+                // Для ОКЛ доступны только ПНД+антипирены и ПВХ
                 if(val === 'pnd_antipyr' || val === 'pvc') {
                     options[i].style.display = '';
+                    options[i].disabled = false;
                 } else {
                     options[i].style.display = 'none';
+                    options[i].disabled = true;
                 }
             } else {
                 options[i].style.display = '';
+                options[i].disabled = false;
             }
         }
-        // Если текущее выбранное значение скрыто — переключаем на первое доступное
+        
+        // Если текущее выбранное значение скрыто или недоступно — переключаем на первое доступное
         let currentVal = tubeSelect.value;
         let currentVisible = false;
         for(let i = 0; i < options.length; i++) {
@@ -514,13 +521,12 @@
         return {text: `${packs} уп. (по ${packSize}шт)`};
     }
 
-    // --- Рендер выбора крепежа (наглядные карточки) ---
+    // --- Рендер выбора крепежа ---
     function renderMountSelector() {
         const container = document.getElementById('mountSelectorArea');
         const isOkl = (trafficType === "okl");
         
-        // Для ОКЛ блокируем выбор пластика
-        const plasticDisabled = isOkl;  // если ОКЛ — пластик недоступен
+        const plasticDisabled = isOkl;
         
         container.innerHTML = `
             <div class="mount-card ${mountCategory === 'steel' ? 'active' : ''}" data-mount="steel">
@@ -537,12 +543,11 @@
             </div>
         `;
         
-        // Обработчики
         document.querySelectorAll('.mount-card').forEach(card => {
             card.addEventListener('click', () => {
                 const mount = card.getAttribute('data-mount');
                 const isOklNow = (trafficType === "okl");
-                if(isOklNow && mount === 'plastic') return; // нельзя выбрать пластик для ОКЛ
+                if(isOklNow && mount === 'plastic') return;
                 if(mount === 'steel' || mount === 'plastic') {
                     mountCategory = mount;
                     renderMountSelector();
@@ -755,8 +760,7 @@
                 trafficRadios.forEach(r => r.classList.remove('active'));
                 radio.classList.add('active');
                 trafficType = radio.getAttribute('data-traffic');
-                filterTubeOptions();                // Фильтруем трубы (ОКЛ: только ПНД+антипирены и ПВХ)
-                // При смене на ОКЛ — принудительно ставим стальные скобы
+                filterTubeOptions();      // ВАЖНО: фильтруем трубы при смене категории
                 if(trafficType === "okl") {
                     mountCategory = "steel";
                 }
@@ -773,7 +777,7 @@
     // Инициализация
     window.addEventListener('DOMContentLoaded', () => {
         renderDiameterButtons();
-        filterTubeOptions();        // Первичная фильтрация (по умолчанию ОКЛ)
+        filterTubeOptions();        // Первичный вызов — скрываем ненужные трубы для ОКЛ
         renderMountSelector();
         renderMountSubtypes();
         attachEvents();
