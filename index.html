@@ -328,6 +328,9 @@
             width: auto;
             margin: 0;
         }
+        .box-item input[type="number"] {
+            width: 70px;
+        }
         .remove-box {
             background: #FEE2E2;
             border: none;
@@ -335,6 +338,19 @@
             padding: 4px 12px;
             cursor: pointer;
             color: #991B1B;
+        }
+        .box-count-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+            background: #F8FAFE;
+            padding: 10px 12px;
+            border-radius: 20px;
+        }
+        .box-count-group input {
+            width: 80px;
+            margin: 0;
         }
         .auto-diam-badge {
             background: #E0F2FE;
@@ -479,7 +495,14 @@
     const packSizes = { 16:100, 20:100, 25:100, 32:50, 40:30, 50:20 };
 
     let cablesArray = [{ section: 8 }, { section: 4 }];
-    let boxesArray = [{ material: 'steel', terminals: 4 }];
+    // boxesArray: каждый элемент { material, terminals, count }
+    let boxesArray = [{ material: 'steel', terminals: 4, count: 1 }];
+
+    // Максимальное количество клемм в зависимости от материала
+    function getMaxTerminals(material) {
+        if(material === 'steel') return 12;
+        return 10; // plastic_ap и pp_membrane
+    }
 
     // === Функции расчёта заполнения ===
     function getInnerDiameter(diam) { return Math.max(diam - 3.2, diam * 0.84); }
@@ -498,11 +521,11 @@
         return { ok: percent <= maxFill, percent: percent.toFixed(1), maxFill };
     }
     
-    // === АВТОПОДБОР ДИАМЕТРА (минимальный подходящий) ===
+    // === АВТОПОДБОР ДИАМЕТРА ===
     function getMinValidDiameter() {
         if(cablesArray.length === 0) return 16;
         let requiredArea = totalCablesArea(cablesArray);
-        let maxFill = 0.4; // 40%
+        let maxFill = 0.4;
         for(let d of diameters) {
             let areaTube = tubeArea(d);
             if(areaTube * maxFill >= requiredArea) {
@@ -567,7 +590,7 @@
     function getCoilInfoRoundUp(needMeters, diam) { let coils = Math.ceil(needMeters / coilLengths[diam]); return `${coils} бухт(а) по ${coilLengths[diam]}м`; }
     function getPackInfoRoundUp(pieces, diam) { let packs = Math.ceil(pieces / packSizes[diam]); return `${packs} уп. (по ${packSizes[diam]}шт)`; }
 
-    // === UI с блокировкой неподходящих диаметров ===
+    // === UI ===
     function renderDiameterButtons() {
         const container = document.getElementById('diameterGrid');
         const minValid = getMinValidDiameter();
@@ -633,9 +656,7 @@
             let val = parseFloat(inp.value);
             if(!isNaN(val) && val > 0) cablesArray[idx].section = val;
             let minValid = getMinValidDiameter();
-            if(currentDiameter < minValid) {
-                currentDiameter = minValid;
-            }
+            if(currentDiameter < minValid) currentDiameter = minValid;
             renderDiameterButtons();
             performCalculation();
         }));
@@ -644,9 +665,7 @@
             cablesArray.splice(idx, 1);
             renderCablesList();
             let minValid = getMinValidDiameter();
-            if(currentDiameter < minValid) {
-                currentDiameter = minValid;
-            }
+            if(currentDiameter < minValid) currentDiameter = minValid;
             renderDiameterButtons();
             performCalculation();
         }));
@@ -654,35 +673,57 @@
 
     function renderBoxesList() {
         const container = document.getElementById('boxesContainer');
-        if(boxesArray.length === 0) { container.innerHTML = '<div style="padding:12px; text-align:center;">Нет коробок</div>'; return; }
+        if(boxesArray.length === 0) { 
+            container.innerHTML = '<div style="padding:12px; text-align:center;">Нет коробок</div>'; 
+            return; 
+        }
         let html = '';
         boxesArray.forEach((box, idx) => {
+            let maxTerm = getMaxTerminals(box.material);
             let materialText = box.material === 'steel' ? 'Сталь' : (box.material === 'plastic_ap' ? 'Пластик с антипиренами' : 'ПП с мембраной (двухкомпонентная)');
             html += `<div class="box-item">
-                <select data-box-idx="${idx}" class="box-material-select" style="width:240px;">
-                    <option value="steel" ${box.material === 'steel' ? 'selected' : ''}>Сталь</option>
-                    <option value="plastic_ap" ${box.material === 'plastic_ap' ? 'selected' : ''}>Пластик с антипиренами</option>
-                    <option value="pp_membrane" ${box.material === 'pp_membrane' ? 'selected' : ''}>ПП с мембраной (двухкомпонентная)</option>
+                <select data-box-idx="${idx}" class="box-material-select" style="width:200px;">
+                    <option value="steel" ${box.material === 'steel' ? 'selected' : ''}>Сталь (макс. ${getMaxTerminals('steel')} клемм)</option>
+                    <option value="plastic_ap" ${box.material === 'plastic_ap' ? 'selected' : ''}>Пластик с антипиренами (макс. 10)</option>
+                    <option value="pp_membrane" ${box.material === 'pp_membrane' ? 'selected' : ''}>ПП с мембраной (макс. 10)</option>
                 </select>
-                <span>Клемм:</span>
-                <input type="number" min="1" max="10" value="${box.terminals}" data-box-idx="${idx}" class="box-terminals-input" style="width:70px;">
+                <span>Кол-во:</span>
+                <input type="number" min="1" max="999" value="${box.count}" data-box-idx="${idx}" class="box-count-input" style="width:70px;">
+                <span>Клемм/кор:</span>
+                <input type="number" min="1" max="${maxTerm}" value="${box.terminals}" data-box-idx="${idx}" class="box-terminals-input" style="width:70px;">
                 <button class="remove-box" data-idx="${idx}">✕</button>
                 <span style="font-size:0.7rem; color:#475569;">${materialText}</span>
             </div>`;
         });
         container.innerHTML = html;
+        
         document.querySelectorAll('.box-material-select').forEach(sel => sel.addEventListener('change', (e) => {
             let idx = parseInt(sel.dataset.boxIdx);
-            if(!isNaN(idx) && boxesArray[idx]) boxesArray[idx].material = sel.value;
-            performCalculation();
+            if(!isNaN(idx) && boxesArray[idx]) {
+                boxesArray[idx].material = sel.value;
+                let newMax = getMaxTerminals(boxesArray[idx].material);
+                if(boxesArray[idx].terminals > newMax) boxesArray[idx].terminals = newMax;
+                renderBoxesList();
+                performCalculation();
+            }
+        }));
+        document.querySelectorAll('.box-count-input').forEach(inp => inp.addEventListener('change', (e) => {
+            let idx = parseInt(inp.dataset.boxIdx);
+            if(!isNaN(idx) && boxesArray[idx]) {
+                let val = parseInt(inp.value);
+                boxesArray[idx].count = Math.max(1, isNaN(val) ? 1 : val);
+                renderBoxesList();
+                performCalculation();
+            }
         }));
         document.querySelectorAll('.box-terminals-input').forEach(inp => inp.addEventListener('change', (e) => {
             let idx = parseInt(inp.dataset.boxIdx);
             if(!isNaN(idx) && boxesArray[idx]) {
+                let maxTerm = getMaxTerminals(boxesArray[idx].material);
                 let val = parseInt(inp.value);
-                boxesArray[idx].terminals = Math.min(10, Math.max(1, isNaN(val) ? 1 : val));
+                boxesArray[idx].terminals = Math.min(maxTerm, Math.max(1, isNaN(val) ? 1 : val));
+                performCalculation();
             }
-            performCalculation();
         }));
         document.querySelectorAll('.remove-box').forEach(btn => btn.addEventListener('click', (e) => {
             let idx = parseInt(btn.dataset.idx);
@@ -767,20 +808,25 @@
         let mountTypeStr = mountCategory === 'steel' ? (steelSubType === 'single' ? 'Стальная скоба однолапковая' : 'Стальная скоба двухлапковая') : (plasticSubType === 'gun' ? 'Клипса под пистолет' : 'Клипса под отвертку');
         document.getElementById('mountTypeLabel').innerHTML = mountTypeStr;
 
-        let totalBoxes = boxesArray.length;
-        let totalTerminals = boxesArray.reduce((sum, b) => sum + b.terminals, 0);
-        let boxesDetail = boxesArray.map(b => { 
+        // Подсчёт коробок с учётом количества
+        let totalBoxes = 0;
+        let totalTerminals = 0;
+        let boxesDetail = [];
+        boxesArray.forEach(b => {
+            let cnt = b.count || 1;
+            totalBoxes += cnt;
+            totalTerminals += cnt * b.terminals;
             let name = b.material === 'steel' ? 'Сталь' : (b.material === 'plastic_ap' ? 'Пластик АП' : 'ПП мембрана');
-            return `${name} (${b.terminals} кл)`;
-        }).join(', ');
+            boxesDetail.push(`${name} (${b.terminals} кл) ×${cnt}`);
+        });
         document.getElementById('totalBoxesCount').innerHTML = totalBoxes;
         document.getElementById('totalTerminalsSum').innerHTML = totalTerminals;
-        document.getElementById('boxesDetails').innerHTML = boxesDetail || '—';
+        document.getElementById('boxesDetails').innerHTML = boxesDetail.join(', ') || '—';
         
         let infoText = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'} | Труба Ø${currentDiameter} мм, рядов: ${rows}<br>`;
         infoText += `📦 Заполнение: ${fill.percent}% ${fill.ok ? '(норма)' : '(превышение!)'}<br>`;
         infoText += `🔧 ${mountTypeStr}, шаг ${spacing.toFixed(2)} м, упаковка ${packSizes[currentDiameter]} шт.<br>`;
-        infoText += `📎 Распределительные коробки: сталь, пластик с антипиренами, ПП с мембраной.`;
+        infoText += `📎 Распределительные коробки: сталь (макс. 12 клемм), пластик АП (макс. 10), ПП мембрана (макс. 10).`;
         document.getElementById('ruleInfo').innerHTML = infoText;
         
         if(currentDiameter < minValid) {
@@ -794,13 +840,16 @@
         cablesArray.push({ section: 6 }); 
         renderCablesList(); 
         let minValid = getMinValidDiameter();
-        if(currentDiameter < minValid) {
-            currentDiameter = minValid;
-        }
+        if(currentDiameter < minValid) currentDiameter = minValid;
         renderDiameterButtons();
         performCalculation(); 
     }
-    function addBox() { boxesArray.push({ material: 'steel', terminals: 4 }); renderBoxesList(); performCalculation(); }
+    
+    function addBox() { 
+        boxesArray.push({ material: 'steel', terminals: 4, count: 1 }); 
+        renderBoxesList(); 
+        performCalculation(); 
+    }
 
     function attachEvents() {
         document.getElementById('calcBtn').onclick = performCalculation;
