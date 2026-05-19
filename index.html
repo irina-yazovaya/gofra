@@ -277,8 +277,9 @@
             border-left: 4px solid #DC2626;
             padding: 16px;
             border-radius: 20px;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             margin-top: 20px;
+            line-height: 1.4;
         }
         .cable-list {
             background: #FFFFFF;
@@ -510,44 +511,36 @@
     const coilLengths = { 16:100, 20:100, 25:50, 32:50, 40:15, 50:15 };
     const packSizes = { 16:100, 20:100, 25:100, 32:50, 40:30, 50:20 };
 
-    let cablesArray = [{ section: 1.5 }, { section: 1.5 }, { section: 1.5 }];
+    // Исходные кабели: 5 штук по 1.5 мм² — должны НЕ влезать в 16 мм!
+    let cablesArray = [{ section: 1.5 }, { section: 1.5 }, { section: 1.5 }, { section: 1.5 }, { section: 1.5 }];
     let boxesArray = [{ material: 'steel', terminals: 4, count: 1 }];
 
     // === КОРРЕКТНЫЙ РАСЧЁТ ВНЕШНЕГО ДИАМЕТРА КАБЕЛЯ ===
-    // Формула: диаметр жилы + изоляция (~2-3 мм в зависимости от сечения)
     function getCableOuterDiameter(sectionMM2) {
-        // Диаметр токопроводящей жилы
         let coreDiameter = 2 * Math.sqrt(sectionMM2 / Math.PI);
-        // Добавляем изоляцию: для малых сечений ~2мм, для больших ~2.5-3мм
         let insulation = sectionMM2 <= 6 ? 2.0 : (sectionMM2 <= 25 ? 2.5 : 3.0);
         return coreDiameter + insulation;
     }
 
-    // Площадь сечения кабеля по внешнему диаметру
     function getCableArea(sectionMM2) {
         let d = getCableOuterDiameter(sectionMM2);
         return Math.PI * Math.pow(d / 2, 2);
     }
 
-    // Внутренний диаметр гофрированной трубы (с учётом стенки ~2-3мм)
     function getInnerTubeDiameter(tubeDiameterMM) {
-        // Для гофры ПНД/ПВХ внутренний диаметр примерно на 3-4 мм меньше наружного
         return tubeDiameterMM - 3.5;
     }
 
-    // Площадь внутреннего сечения трубы
     function getTubeArea(tubeDiameterMM) {
         let innerD = getInnerTubeDiameter(tubeDiameterMM);
         if(innerD <= 0) return 0;
         return Math.PI * Math.pow(innerD / 2, 2);
     }
 
-    // Суммарная площадь всех кабелей
     function getTotalCablesArea(cables) {
         return cables.reduce((sum, c) => sum + getCableArea(c.section), 0);
     }
 
-    // Процент заполнения трубы кабелями
     function getFillPercentage(tubeDiameterMM, cables) {
         let tubeArea = getTubeArea(tubeDiameterMM);
         if(tubeArea <= 0) return 100;
@@ -555,14 +548,12 @@
         return (cablesArea / tubeArea) * 100;
     }
 
-    // Проверка соответствия нормам ПУЭ (максимум 40% для 3+ кабелей, 35% для 2 кабелей)
     function isFillValid(tubeDiameterMM, cables) {
         let fillPercent = getFillPercentage(tubeDiameterMM, cables);
         let maxFill = cables.length >= 3 ? 40 : (cables.length === 2 ? 35 : 45);
         return fillPercent <= maxFill;
     }
 
-    // Минимальный рекомендуемый диаметр трубы для заданного набора кабелей
     function getMinRecommendedDiameter() {
         if(cablesArray.length === 0) return 16;
         for(let d of diameters) {
@@ -573,7 +564,6 @@
         return 50;
     }
 
-    // Автоматическая установка минимального подходящего диаметра
     function applyMinDiameter() {
         let minDiam = getMinRecommendedDiameter();
         if(currentDiameter < minDiam) {
@@ -682,11 +672,10 @@
         if(cablesArray.length === 0) { container.innerHTML = '<div style="padding:12px; text-align:center;">Нет кабелей</div>'; hint.style.display = 'none'; return; }
         let html = '';
         cablesArray.forEach((cable, idx) => {
-            let outerDiam = getCableOuterDiameter(cable.section).toFixed(1);
             html += `<div class="cable-item">
                 <span>Сечение:</span>
                 <input type="number" step="0.5" min="0.75" value="${cable.section}" data-cable-idx="${idx}" class="cable-section-input" style="width:90px;">
-                <span>мм² (Øвнеш ≈ ${outerDiam} мм)</span>
+                <span>мм²</span>
                 <button class="remove-cable" data-idx="${idx}">✕</button>
             </div>`;
         });
@@ -878,10 +867,10 @@
         document.getElementById('totalBoxesCount').innerHTML = totalBoxes;
         document.getElementById('boxesDetails').innerHTML = boxesDetail.join(', ') || '—';
         
-        let infoText = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'} | Заполнение: ${fillPercent.toFixed(1)}% ${isValid ? '(норма)' : '(превышение!)'}<br>`;
+        let infoText = `🔹 ${trafficType === 'okl' ? 'ОКЛ (огнестойкая)' : 'Общего назначения'}<br>`;
+        infoText += `📊 Заполнение трубы: ${fillPercent.toFixed(1)}% ${isValid ? '(норма)' : '(превышение!)'}<br>`;
         infoText += `🔧 Шаг крепления: ${spacing.toFixed(2)} м<br>`;
-        infoText += `📎 Коробки: сталь (макс. 12 клемм), пластик АП/ПП (макс. 10)<br>`;
-        infoText += `📐 Внутренний диаметр трубы ${currentDiameter} мм ≈ ${getInnerTubeDiameter(currentDiameter).toFixed(1)} мм`;
+        infoText += `📎 Коробки: сталь (макс. 12 клемм), пластик АП/ПП (макс. 10)`;
         document.getElementById('ruleInfo').innerHTML = infoText;
         
         if(!isValid) {
