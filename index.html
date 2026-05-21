@@ -64,7 +64,8 @@
         .box-field label { font-weight: 600; font-size: 0.7rem; color: #475569; }
         .box-field select, .box-field input { padding: 8px 10px; border-radius: 28px; border: 1px solid #CBD5E1; background: white; width: 100%; font-size: 0.8rem; }
         
-        .pue-box { background: #FEFCE8; border-left: 4px solid #DC2626; padding: 12px; border-radius: 20px; font-size: 0.7rem; margin-top: 16px; line-height: 1.4; }
+        .pue-box { background: #FEFCE8; border-left: 4px solid #DC2626; padding: 12px; border-radius: 20px; font-size: 0.7rem; margin-top: 16px; line-height: 1.4; display: flex; gap: 10px; align-items: flex-start; }
+        .pue-icon { font-size: 1.2rem; margin-top: 2px; }
         .total-section { background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 20px; padding: 12px; margin-top: 20px; }
         .total-header { font-weight: 800; font-size: 0.9rem; color: #0369A1; margin-bottom: 10px; border-bottom: 2px solid #BAE6FD; display: inline-block; padding-right: 20px; }
         
@@ -269,11 +270,11 @@
                 </div>`;
             }
             
-            // ПОЛЯ ДЛЯ РУЧНОГО ВВОДА (РАБОТАЮТ КАК ОБЫЧНЫЕ INPUT)
+            // ПОЛЯ ТОЛЬКО ДЛЯ ЧИСЕЛ (без символов)
             let paramsHtml = `<div class="params-row">
-                <div class="param-group"><label>📏 Длина трассы (м)</label><input type="number" value="${seg.length}" data-seg="${i}" class="length-local" step="1" min="0"></div>
-                <div class="param-group"><label>🔄 Изгибов (90°)</label><input type="number" value="${seg.bends}" data-seg="${i}" class="bends-local" step="1" min="0"></div>
-                <div class="param-group"><label>📚 Количество рядов</label><input type="number" value="${seg.rows}" data-seg="${i}" class="rows-local" step="1" min="1"></div>
+                <div class="param-group"><label>📏 Длина трассы (м)</label><input type="number" value="${seg.length}" data-seg="${i}" class="length-local" step="1" min="0" onkeypress="return (event.charCode >= 48 && event.charCode <= 57)" oninput="this.value = Math.floor(Math.abs(parseInt(this.value)) || 0)"></div>
+                <div class="param-group"><label>🔄 Изгибов (90°)</label><input type="number" value="${seg.bends}" data-seg="${i}" class="bends-local" step="1" min="0" onkeypress="return (event.charCode >= 48 && event.charCode <= 57)" oninput="this.value = Math.floor(Math.abs(parseInt(this.value)) || 0)"></div>
+                <div class="param-group"><label>📚 Количество рядов</label><input type="number" value="${seg.rows}" data-seg="${i}" class="rows-local" step="1" min="1" onkeypress="return (event.charCode >= 48 && event.charCode <= 57)" oninput="let val = parseInt(this.value); if (isNaN(val) || val < 1) this.value = 1; else this.value = Math.floor(val)"></div>
             </div>`;
             
             let mountCategory = seg.mountCategory;
@@ -318,7 +319,6 @@
     }
 
     function attachInputEvents() {
-        // Обработчики для полей длины, изгибов, рядов
         for(let i=0; i<segments.length; i++) {
             let lenInput = document.querySelector(`.length-local[data-seg="${i}"]`);
             let bendsInput = document.querySelector(`.bends-local[data-seg="${i}"]`);
@@ -350,7 +350,6 @@
             }
         }
         
-        // Обработчики для полей сечения кабеля (с округлением вверх при потере фокуса)
         let cableInputs = document.querySelectorAll('.cable-sec-local');
         cableInputs.forEach(input => {
             let segIdx = parseInt(input.dataset.seg);
@@ -367,13 +366,9 @@
                         recalcAll();
                     }
                 });
-                input.addEventListener('input', function() {
-                    // Не округляем во время ввода, только при потере фокуса
-                });
             }
         });
         
-        // Обработчики для полей коробок
         let boxCountInputs = document.querySelectorAll('.box-count-local');
         boxCountInputs.forEach(input => {
             input.addEventListener('input', function() {
@@ -628,19 +623,36 @@
             </div>`;
         }
         document.getElementById('specBlock').innerHTML = specHtml || '<div class="small-help">Нет добавленных трасс</div>';
-        document.getElementById('pueBlock').innerHTML = `<strong>📐 Нормы ПУЭ и правила расчёта:</strong><br>• Для 3+ кабелей — макс. 40% заполнения (п. 2.1.61 ПУЭ).<br>• Для 2 кабелей — 35%, для одного — 45%.<br>• ОКЛ: только стальные скобы, шаг 0,5 м.<br>• Пластиковые клипсы: шаг 0,7–1,1 м.<br>• Крепёж считается с учётом длины, изгибов, коробок и количества труб.<br>• Данные по артикулам, весу и объёму труб — СИСТЕМА КМ.`;
-        if(segments.length >= 2) {
+        
+        document.getElementById('pueBlock').innerHTML = `<div class="pue-icon">💡</div><div><strong>Нормы ПУЭ и правила расчёта:</strong><br>• Для 3+ кабелей — макс. 40% заполнения (п. 2.1.61 ПУЭ).<br>• Для 2 кабелей — 35%, для одного — 45%.<br>• ОКЛ: только стальные скобы, шаг 0,5 м.<br>• Пластиковые клипсы: шаг 0,7–1,1 м.<br>• Крепёж считается с учётом длины, изгибов, коробок и количества труб.<br>• Данные по артикулам, весу и объёму труб — СИСТЕМА КМ.</div>`;
+        
+        if(segments.length >= 1) {
             let totalPipesHtml = '';
+            let mountDetails = [];
             for(let [key, meters] of Object.entries(totalMetersByDiameter)) {
                 let [tubeType, diam] = key.split('_');
                 let tubeMaterial = tubeType==='pvc'?'ПВХ':(tubeType==='pnd_antipyr'?'ПНД HFFRLS':(tubeType==='pnd_orange'?'ПНД оранжевая':'ПНД чёрная'));
                 let coils = totalCoilsByDiameter[key];
                 totalPipesHtml += `<div class="spec-card-row"><span>🔧 ${tubeMaterial} Ø${diam} мм:</span><span>${meters.toFixed(1)} м (${coils} бухт)</span></div>`;
+                
+                let mountTypeName = "";
+                for(let seg of segments) {
+                    if(seg.tubeType === tubeType && seg.pipesCount > 0) {
+                        if(seg.mountCategory === 'steel') {
+                            mountTypeName = seg.steelSubType === 'single' ? 'Стальная скоба однолапковая' : 'Стальная скоба двухлапковая';
+                        } else {
+                            mountTypeName = seg.plasticSubType === 'gun' ? 'Клипса пластиковая под пистолет' : 'Клипса пластиковая под отвертку';
+                        }
+                        break;
+                    }
+                }
+                mountDetails.push(`${mountTypeName} Ø${diam} мм`);
             }
+            let mountDetailsStr = mountDetails.join(', ');
             let totalProjectHtml = `<div class="total-section">
                 <div class="total-header">📊 ИТОГО ПО ПРОЕКТУ</div>
                 ${totalPipesHtml}
-                <div class="spec-card-row"><span>🔩 Крепёж (${mountTypeGlobal}):</span><span>${totalMountsAll} шт (${mountPackGlobal})</span></div>
+                <div class="spec-card-row"><span>🔩 Крепёж (${mountDetailsStr}):</span><span>${totalMountsAll} шт (${mountPackGlobal})</span></div>
                 <div class="spec-card-row"><span>📐 Общий объём:</span><span>${totalVolume.toFixed(6)} м³</span></div>
                 <div class="spec-card-row"><span>⚖️ Общий вес:</span><span>${totalWeight.toFixed(3)} кг</span></div>
             </div>`;
