@@ -64,6 +64,10 @@
         .box-field label { font-weight: 600; font-size: 0.7rem; color: #475569; }
         .box-field select, .box-field input { padding: 8px 10px; border-radius: 28px; border: 1px solid #CBD5E1; background: white; width: 100%; font-size: 0.8rem; }
         
+        .pue-box { background: #FEFCE8; border-left: 4px solid #DC2626; padding: 12px; border-radius: 20px; font-size: 0.7rem; margin-top: 16px; line-height: 1.4; }
+        .total-section { background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 20px; padding: 12px; margin-top: 20px; }
+        .total-header { font-weight: 800; font-size: 0.9rem; color: #0369A1; margin-bottom: 10px; border-bottom: 2px solid #BAE6FD; display: inline-block; padding-right: 20px; }
+        
         @media (max-width: 768px) {
             body { padding: 12px; }
             .brand-header { padding: 16px; }
@@ -108,12 +112,16 @@
                 <button type="button" id="addSegmentBtn" class="btn-outline" style="background:#E2E8F0; color:#1E293B;">+ Добавить кабельную трассу</button>
                 <button id="calcBtn">⟳ ПЕРЕСЧИТАТЬ ВСЕ ТРАССЫ</button>
             </div>
-            <div class="panel-right"><h3 style="margin-bottom: 18px;">📋 СВОДНАЯ СПЕЦИФИКАЦИЯ</h3><div id="specBlock"></div><div class="info-panel" id="paramsBlock"></div></div>
+            <div class="panel-right">
+                <h3 style="margin-bottom: 18px;">📋 СВОДНАЯ СПЕЦИФИКАЦИЯ</h3>
+                <div id="specBlock"></div>
+                <div id="totalProjectBlock" style="margin-top: 16px;"></div>
+                <div class="pue-box" id="pueBlock"></div>
+            </div>
         </div>
     </div>
 </div>
 <script>
-    // ======================== БАЗА ТРУБ ========================
     const pipesDB = {
         pvc: { 16: { code: "LO63882", art: "KM-FRTGPVC-16", name: "Труба гофрированная ПВХ D16 мм (уп. 100 м)", volume: 0.000625, weight: 0.04, coil: 100 },
               20: { code: "LO63883", art: "KM-FRTGPVC-20", name: "Труба ПВХ D20 мм (уп. 100 м)", volume: 0.00070225, weight: 0.067, coil: 100 },
@@ -143,7 +151,6 @@
 
     let segments = [];
 
-    // ======================== РАСЧЁТНЫЕ ФУНКЦИИ ========================
     function getCableOuterDiameter(section, form) {
         let core = 2 * Math.sqrt(section / Math.PI);
         let insulation = section <= 6 ? 3.2 : (section <= 25 ? 3.5 : 4.0);
@@ -191,7 +198,11 @@
         return { text: `Даже при разбиении на 4 трубы заполнение превышает норму.`, pipes: 4 };
     }
 
-    // ======================== ОСНОВНОЙ РЕНДЕР (С ИСПРАВЛЕННЫМИ БЛОКАМИ ТРУБЫ И ТИПА КАБЕЛЯ) ========================
+    function roundUpToQuarter(val) {
+        if (isNaN(val)) return 0;
+        return Math.ceil(val / 0.25) * 0.25;
+    }
+
     function renderSegments() {
         let container = document.getElementById('segmentsContainer');
         container.innerHTML = '';
@@ -202,7 +213,6 @@
                 <div data-traffic="non_okl" class="traffic-radio ${seg.trafficType==='non_okl'?'active':''}"><span class="traffic-icon">📁</span> Общего назначения</div>
             </div>`;
             
-            // ========== ИСПРАВЛЕННЫЙ БЛОК "СОСТАВ ТРУБЫ" ==========
             const allTubeTypes = [
                 { value: "pnd_antipyr", label: "🔴 ПНД + антипирены (HFFRLS)" },
                 { value: "pvc", label: "⚪ ПВХ (FIREFORT)" },
@@ -220,7 +230,6 @@
             }
             tubeHtml += `</div>`;
             
-            // ========== ИСПРАВЛЕННЫЙ БЛОК "ТИП КАБЕЛЯ" ==========
             const cableTypes = [
                 { value: "round", label: "🔵 Круглый" },
                 { value: "flat", label: "🟫 Плоский" }
@@ -232,11 +241,11 @@
             }
             cableTypeHtml += `</div>`;
             
-            // ========== ОСТАЛЬНЫЕ БЛОКИ ==========
             let cablesHtml = '';
             seg.cables.forEach((c, cidx) => {
                 cablesHtml += `<div class="cable-item">
-                    <input type="number" step="0.25" min="0.75" max="400" value="${c.section}" data-seg="${i}" data-cidx="${cidx}" class="cable-sec-local" style="width:90px;"><span>мм²</span>
+                    <input type="number" step="0.25" min="0.75" max="400" value="${c.section}" data-seg="${i}" data-cidx="${cidx}" class="cable-sec-local" style="width:90px;">
+                    <span>мм²</span>
                     <button class="remove-cable-local" data-seg="${i}" data-cidx="${cidx}" style="background:#FEE2E2; border:none; border-radius:30px; padding:4px 10px;">✕</button>
                 </div>`;
             });
@@ -259,11 +268,14 @@
                     Кабели: ${groups[g].map(c=>`${c.section} мм²`).join(', ')}
                 </div>`;
             }
+            
+            // ПОЛЯ ДЛЯ РУЧНОГО ВВОДА (РАБОТАЮТ КАК ОБЫЧНЫЕ INPUT)
             let paramsHtml = `<div class="params-row">
-                <div class="param-group"><label>📏 Длина трассы (м)</label><input type="number" value="${seg.length}" data-seg="${i}" class="length-local"></div>
-                <div class="param-group"><label>🔄 Изгибов (90°)</label><input type="number" value="${seg.bends}" data-seg="${i}" class="bends-local"></div>
-                <div class="param-group"><label>📚 Количество рядов</label><input type="number" value="${seg.rows}" data-seg="${i}" class="rows-local" min="1"></div>
+                <div class="param-group"><label>📏 Длина трассы (м)</label><input type="number" value="${seg.length}" data-seg="${i}" class="length-local" step="1" min="0"></div>
+                <div class="param-group"><label>🔄 Изгибов (90°)</label><input type="number" value="${seg.bends}" data-seg="${i}" class="bends-local" step="1" min="0"></div>
+                <div class="param-group"><label>📚 Количество рядов</label><input type="number" value="${seg.rows}" data-seg="${i}" class="rows-local" step="1" min="1"></div>
             </div>`;
+            
             let mountCategory = seg.mountCategory;
             let mountHtml = `<div class="mount-selector" data-seg="${i}" style="margin-bottom:12px;">
                 <div class="mount-card ${mountCategory==='steel'?'active':''}" data-mount="steel"><div class="mount-icon">🔩</div><div class="mount-title">Стальные скобы</div><div class="mount-desc">Однолапковые / двухлапковые</div>${seg.trafficType==='okl'?'<div class="warning-badge">ДЛЯ ОКЛ</div>':''}</div>
@@ -300,18 +312,107 @@
             let removeBtn = segments.length > 1 ? `<button class="remove-segment" data-seg="${i}" style="margin-left:auto;">🗑 Удалить трассу</button>` : '';
             container.innerHTML += `<div class="segment-card" data-seg="${i}"><div class="segment-header"><span>📌 Кабельная трасса №${i+1}</span>${removeBtn}</div>${trafficHtml}<div><strong>Состав трубы:</strong> ${tubeHtml}</div><div><strong>Тип кабеля:</strong> ${cableTypeHtml}</div><div><strong>Сечение кабеля:</strong> ${cablesHtml} ${addCableBtn}</div><div><strong>Суммарное сечение всех кабелей:</strong> ${totalCoresArea} мм²</div>${recHtml}${pipeChoiceHtml}<div><strong>Распределение по трубам:</strong> ${groupsInfo}</div>${paramsHtml}<div><strong>Тип крепежа:</strong> ${mountHtml}${mountSubHtml}</div>${boxesBlock}</div>`;
         }
+        attachInputEvents();
         attachGlobalEvents();
         recalcAll();
     }
 
-    // ======================== ГЛОБАЛЬНЫЕ СОБЫТИЯ ========================
+    function attachInputEvents() {
+        // Обработчики для полей длины, изгибов, рядов
+        for(let i=0; i<segments.length; i++) {
+            let lenInput = document.querySelector(`.length-local[data-seg="${i}"]`);
+            let bendsInput = document.querySelector(`.bends-local[data-seg="${i}"]`);
+            let rowsInput = document.querySelector(`.rows-local[data-seg="${i}"]`);
+            
+            if(lenInput) {
+                lenInput.addEventListener('input', function() {
+                    let val = parseInt(this.value);
+                    if (isNaN(val)) val = 0;
+                    segments[i].length = val;
+                    recalcAll();
+                });
+            }
+            if(bendsInput) {
+                bendsInput.addEventListener('input', function() {
+                    let val = parseInt(this.value);
+                    if (isNaN(val)) val = 0;
+                    segments[i].bends = val;
+                    recalcAll();
+                });
+            }
+            if(rowsInput) {
+                rowsInput.addEventListener('input', function() {
+                    let val = parseInt(this.value);
+                    if (isNaN(val) || val < 1) val = 1;
+                    segments[i].rows = val;
+                    recalcAll();
+                });
+            }
+        }
+        
+        // Обработчики для полей сечения кабеля (с округлением вверх при потере фокуса)
+        let cableInputs = document.querySelectorAll('.cable-sec-local');
+        cableInputs.forEach(input => {
+            let segIdx = parseInt(input.dataset.seg);
+            let cableIdx = parseInt(input.dataset.cidx);
+            if (!isNaN(segIdx) && !isNaN(cableIdx) && segments[segIdx] && segments[segIdx].cables[cableIdx]) {
+                input.addEventListener('change', function() {
+                    let val = parseFloat(this.value);
+                    if (!isNaN(val) && val > 0 && val <= 400) {
+                        let rounded = roundUpToQuarter(val);
+                        if (rounded !== val) {
+                            this.value = rounded;
+                        }
+                        segments[segIdx].cables[cableIdx].section = rounded;
+                        recalcAll();
+                    }
+                });
+                input.addEventListener('input', function() {
+                    // Не округляем во время ввода, только при потере фокуса
+                });
+            }
+        });
+        
+        // Обработчики для полей коробок
+        let boxCountInputs = document.querySelectorAll('.box-count-local');
+        boxCountInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                let segIdx = parseInt(this.dataset.seg);
+                let boxIdx = parseInt(this.dataset.boxidx);
+                if (!isNaN(segIdx) && !isNaN(boxIdx) && segments[segIdx] && segments[segIdx].boxes[boxIdx]) {
+                    let val = parseInt(this.value);
+                    if (isNaN(val)) val = 1;
+                    if (val < 1) val = 1;
+                    segments[segIdx].boxes[boxIdx].count = val;
+                    recalcAll();
+                }
+            });
+        });
+        
+        let boxTermInputs = document.querySelectorAll('.box-term-local');
+        boxTermInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                let segIdx = parseInt(this.dataset.seg);
+                let boxIdx = parseInt(this.dataset.boxidx);
+                if (!isNaN(segIdx) && !isNaN(boxIdx) && segments[segIdx] && segments[segIdx].boxes[boxIdx]) {
+                    let max = getMaxTerminals(segments[segIdx].boxes[boxIdx].material);
+                    let val = parseInt(this.value);
+                    if (isNaN(val)) val = 1;
+                    if (val < 1) val = 1;
+                    if (val > max) val = max;
+                    segments[segIdx].boxes[boxIdx].terminals = val;
+                    recalcAll();
+                }
+            });
+        });
+    }
+
     function attachGlobalEvents() {
         document.removeEventListener('click', globalClickHandler);
         document.addEventListener('click', globalClickHandler);
     }
 
     function globalClickHandler(e) {
-        // 1. Выбор типа скобы
         let steelBtn = e.target.closest('[data-steel]');
         if(steelBtn && steelBtn.dataset.steel !== undefined) {
             let segIdx = steelBtn.dataset.seg;
@@ -321,7 +422,6 @@
             }
             return;
         }
-        // 2. Выбор типа клипсы
         let plastBtn = e.target.closest('[data-plast]');
         if(plastBtn && plastBtn.dataset.plast !== undefined) {
             let segIdx = plastBtn.dataset.seg;
@@ -331,7 +431,6 @@
             }
             return;
         }
-        // 3. Категория трассы
         let trafficBtn = e.target.closest('.traffic-radio');
         if(trafficBtn && trafficBtn.parentElement.classList.contains('traffic-type')) {
             let segDiv = trafficBtn.closest('.segment-card');
@@ -346,7 +445,6 @@
             }
             return;
         }
-        // 4. Состав трубы — ИСПРАВЛЕНО (ловим по data-field="tubeType")
         let tubeBtn = e.target.closest('.option-btn[data-field="tubeType"]');
         if(tubeBtn) {
             let segDiv = tubeBtn.closest('.segment-card');
@@ -359,7 +457,6 @@
             }
             return;
         }
-        // 5. Тип кабеля — ИСПРАВЛЕНО
         let cableTypeBtn = e.target.closest('.option-btn[data-field="cableType"]');
         if(cableTypeBtn) {
             let segDiv = cableTypeBtn.closest('.segment-card');
@@ -372,7 +469,6 @@
             }
             return;
         }
-        // 6. Удаление кабеля
         let removeCableBtn = e.target.closest('.remove-cable-local');
         if(removeCableBtn) {
             let segIdx = removeCableBtn.dataset.seg;
@@ -384,7 +480,6 @@
             }
             return;
         }
-        // 7. Добавление кабеля
         let addCableBtn = e.target.closest('.add-cable-local');
         if(addCableBtn) {
             let segIdx = addCableBtn.dataset.seg;
@@ -394,19 +489,6 @@
             }
             return;
         }
-        // 8. Изменение сечения кабеля
-        let cableSecInput = e.target.closest('.cable-sec-local');
-        if(cableSecInput) {
-            let segIdx = cableSecInput.dataset.seg;
-            let cidx = cableSecInput.dataset.cidx;
-            let val = parseFloat(cableSecInput.value);
-            if(segIdx !== undefined && segments[segIdx] && cidx !== undefined && !isNaN(val) && val>0 && val<=400) {
-                segments[segIdx].cables[parseInt(cidx)].section = val;
-                renderSegments();
-            }
-            return;
-        }
-        // 9. Применить рекомендацию
         let applyRecBtn = e.target.closest('.apply-rec');
         if(applyRecBtn) {
             let segIdx = applyRecBtn.dataset.seg;
@@ -417,7 +499,6 @@
             }
             return;
         }
-        // 10. Количество труб
         let pipeChoiceBtn = e.target.closest('.pipe-choice-btn');
         if(pipeChoiceBtn) {
             let segDiv = pipeChoiceBtn.closest('.segment-card');
@@ -431,35 +512,6 @@
             }
             return;
         }
-        // 11. Длина, изгибы, ряды
-        let lenInp = e.target.closest('.length-local');
-        if(lenInp) {
-            let segIdx = lenInp.dataset.seg;
-            if(segIdx !== undefined && segments[segIdx]) {
-                segments[segIdx].length = parseFloat(lenInp.value) || 0;
-                renderSegments();
-            }
-            return;
-        }
-        let bendsInp = e.target.closest('.bends-local');
-        if(bendsInp) {
-            let segIdx = bendsInp.dataset.seg;
-            if(segIdx !== undefined && segments[segIdx]) {
-                segments[segIdx].bends = parseInt(bendsInp.value) || 0;
-                renderSegments();
-            }
-            return;
-        }
-        let rowsInp = e.target.closest('.rows-local');
-        if(rowsInp) {
-            let segIdx = rowsInp.dataset.seg;
-            if(segIdx !== undefined && segments[segIdx]) {
-                segments[segIdx].rows = parseInt(rowsInp.value) || 1;
-                renderSegments();
-            }
-            return;
-        }
-        // 12. Тип крепежа
         let mountCard = e.target.closest('.mount-card');
         if(mountCard && mountCard.parentElement.classList.contains('mount-selector')) {
             let segDiv = mountCard.closest('.segment-card');
@@ -474,36 +526,12 @@
             }
             return;
         }
-        // 13. Коробки
         let boxMaterial = e.target.closest('.box-material-local');
         if(boxMaterial) {
             let segIdx = boxMaterial.dataset.seg;
             let boxidx = boxMaterial.dataset.boxidx;
             if(segIdx !== undefined && segments[segIdx] && boxidx !== undefined) {
                 segments[segIdx].boxes[parseInt(boxidx)].material = boxMaterial.value;
-                renderSegments();
-            }
-            return;
-        }
-        let boxCount = e.target.closest('.box-count-local');
-        if(boxCount) {
-            let segIdx = boxCount.dataset.seg;
-            let boxidx = boxCount.dataset.boxidx;
-            if(segIdx !== undefined && segments[segIdx] && boxidx !== undefined) {
-                let val = parseInt(boxCount.value);
-                segments[segIdx].boxes[parseInt(boxidx)].count = Math.max(1, isNaN(val)?1:val);
-                renderSegments();
-            }
-            return;
-        }
-        let boxTerm = e.target.closest('.box-term-local');
-        if(boxTerm) {
-            let segIdx = boxTerm.dataset.seg;
-            let boxidx = boxTerm.dataset.boxidx;
-            if(segIdx !== undefined && segments[segIdx] && boxidx !== undefined) {
-                let max = getMaxTerminals(segments[segIdx].boxes[parseInt(boxidx)].material);
-                let val = parseInt(boxTerm.value);
-                segments[segIdx].boxes[parseInt(boxidx)].terminals = Math.min(max, Math.max(1, isNaN(val)?1:val));
                 renderSegments();
             }
             return;
@@ -538,9 +566,16 @@
         }
     }
 
-    // ======================== ПЕРЕСЧЁТ ВСЕХ ТРАСС (СПЕЦИФИКАЦИЯ) ========================
     function recalcAll() {
         let specHtml = '';
+        let totalMetersByDiameter = {};
+        let totalCoilsByDiameter = {};
+        let totalVolume = 0;
+        let totalWeight = 0;
+        let totalMountsAll = 0;
+        let mountTypeGlobal = "";
+        let mountPackGlobal = "";
+        
         for(let idx=0; idx<segments.length; idx++) {
             let seg = segments[idx];
             let segLen = totalPipeSegment(seg.length, seg.bends);
@@ -559,19 +594,25 @@
                 let fill = getFillPercent(diam, groups[g], form).toFixed(1);
                 let valid = isFillValid(diam, groups[g], form);
                 pipeInfos.push({diam, metersTotal, coils, volume, weight, cables: cablesStr, fill, valid});
+                
+                let key = `${seg.tubeType}_${diam}`;
+                totalMetersByDiameter[key] = (totalMetersByDiameter[key] || 0) + metersTotal;
+                totalCoilsByDiameter[key] = (totalCoilsByDiameter[key] || 0) + coils;
+                totalVolume += parseFloat(volume) || 0;
+                totalWeight += parseFloat(weight) || 0;
             }
             let spacing = (seg.trafficType === 'okl') ? 0.5 : 0.9;
             let boxesCount = seg.boxes.reduce((s,b)=>s+(b.count||1),0);
             let mountsTotal = calcMountsForSegment(segLen, spacing, seg.bends, seg.mountCategory==='steel', boxesCount, seg.rows, pipeInfos.length);
+            totalMountsAll += mountsTotal;
             let mountTypeStr = seg.mountCategory==='steel' ? (seg.steelSubType==='single'?'однолапковая':'двухлапковая') : (seg.plasticSubType==='gun'?'под пистолет':'под отвертку');
+            mountTypeGlobal = mountTypeStr;
             let mountPackInfo = getPackInfo(mountsTotal, 25);
+            mountPackGlobal = getPackInfo(totalMountsAll, 25);
             let tubeMaterial = seg.tubeType==='pvc'?'ПВХ':(seg.tubeType==='pnd_antipyr'?'ПНД HFFRLS':(seg.tubeType==='pnd_orange'?'ПНД оранжевая':'ПНД чёрная'));
             let pipesHtml = '';
-            let totalVolume = 0, totalWeight = 0;
             for(let p of pipeInfos) {
                 pipesHtml += `<div class="spec-card-row"><span>🔧 Ø${p.diam} мм:</span><span>${p.metersTotal} м (${p.coils} бухт), заполнение ${p.fill}% ${p.valid?'✅':'⚠️'}</span></div>`;
-                totalVolume += parseFloat(p.volume) || 0;
-                totalWeight += parseFloat(p.weight) || 0;
             }
             let boxesStr = (seg.cables.some(c=>c.section>25)) ? '' : seg.boxes.map(b=>`${b.material==='steel'?'Сталь':(b.material==='plastic_ap'?'Пластик АП':'ПП мембрана')} ×${b.count} (${b.terminals} кл)`).join(', ');
             specHtml += `<div class="spec-card">
@@ -582,12 +623,31 @@
                 ${pipesHtml}
                 <div class="spec-card-row"><span>🔩 Крепёж (${mountTypeStr}):</span><span>${mountsTotal} шт (${mountPackInfo})</span></div>
                 ${boxesStr ? `<div class="spec-card-row"><span>📦 Распределительные коробки:</span><span>${boxesStr}</span></div>` : ''}
-                <div class="spec-card-row"><span>📐 Общий объём:</span><span>${totalVolume.toFixed(6)} м³</span></div>
-                <div class="spec-card-row"><span>⚖️ Общий вес:</span><span>${totalWeight.toFixed(3)} кг</span></div>
+                <div class="spec-card-row"><span>📐 Общий объём:</span><span>${pipeInfos.reduce((s,p)=>s+(parseFloat(p.volume)||0),0).toFixed(6)} м³</span></div>
+                <div class="spec-card-row"><span>⚖️ Общий вес:</span><span>${pipeInfos.reduce((s,p)=>s+(parseFloat(p.weight)||0),0).toFixed(3)} кг</span></div>
             </div>`;
         }
         document.getElementById('specBlock').innerHTML = specHtml || '<div class="small-help">Нет добавленных трасс</div>';
-        document.getElementById('paramsBlock').innerHTML = `<strong>📐 Нормы ПУЭ и правила расчёта:</strong><br>• Для 3+ кабелей — макс. 40% заполнения (п. 2.1.61 ПУЭ).<br>• Для 2 кабелей — 35%, для одного — 45%.<br>• ОКЛ: только стальные скобы, шаг 0,5 м.<br>• Пластиковые клипсы: шаг 0,7–1,1 м.<br>• Крепёж считается с учётом длины, изгибов, коробок и количества труб.<br>• Данные по артикулам, весу и объёму труб — СИСТЕМА КМ.`;
+        document.getElementById('pueBlock').innerHTML = `<strong>📐 Нормы ПУЭ и правила расчёта:</strong><br>• Для 3+ кабелей — макс. 40% заполнения (п. 2.1.61 ПУЭ).<br>• Для 2 кабелей — 35%, для одного — 45%.<br>• ОКЛ: только стальные скобы, шаг 0,5 м.<br>• Пластиковые клипсы: шаг 0,7–1,1 м.<br>• Крепёж считается с учётом длины, изгибов, коробок и количества труб.<br>• Данные по артикулам, весу и объёму труб — СИСТЕМА КМ.`;
+        if(segments.length >= 2) {
+            let totalPipesHtml = '';
+            for(let [key, meters] of Object.entries(totalMetersByDiameter)) {
+                let [tubeType, diam] = key.split('_');
+                let tubeMaterial = tubeType==='pvc'?'ПВХ':(tubeType==='pnd_antipyr'?'ПНД HFFRLS':(tubeType==='pnd_orange'?'ПНД оранжевая':'ПНД чёрная'));
+                let coils = totalCoilsByDiameter[key];
+                totalPipesHtml += `<div class="spec-card-row"><span>🔧 ${tubeMaterial} Ø${diam} мм:</span><span>${meters.toFixed(1)} м (${coils} бухт)</span></div>`;
+            }
+            let totalProjectHtml = `<div class="total-section">
+                <div class="total-header">📊 ИТОГО ПО ПРОЕКТУ</div>
+                ${totalPipesHtml}
+                <div class="spec-card-row"><span>🔩 Крепёж (${mountTypeGlobal}):</span><span>${totalMountsAll} шт (${mountPackGlobal})</span></div>
+                <div class="spec-card-row"><span>📐 Общий объём:</span><span>${totalVolume.toFixed(6)} м³</span></div>
+                <div class="spec-card-row"><span>⚖️ Общий вес:</span><span>${totalWeight.toFixed(3)} кг</span></div>
+            </div>`;
+            document.getElementById('totalProjectBlock').innerHTML = totalProjectHtml;
+        } else {
+            document.getElementById('totalProjectBlock').innerHTML = '';
+        }
     }
 
     function addSegment() {
